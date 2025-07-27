@@ -5,6 +5,7 @@ including model factories, memory management, and common tools.
 """
 
 from .models import ModelFactory
+from .memory import SummaryManager, SummaryConfig, SummarizableState
 
 __version__ = "0.1.0"
 __author__ = "Stefano Capezzone"
@@ -12,4 +13,7 @@ __organization__ = "Fastal"
 
 __all__ = [
     "ModelFactory",
+    "SummaryManager", 
+    "SummaryConfig",
+    "SummarizableState",
 ]

@@ -21,17 +21,17 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
-[project.urls]
-"Homepage" = "https://github.com/FastalGroup/fastal-langgraph-toolkit"
-"Repository" = "https://github.com/FastalGroup/fastal-langgraph-toolkit.git"
-"Issues" = "https://github.com/FastalGroup/fastal-langgraph-toolkit/issues"
-
 dependencies = [
     "langchain-core>=0.1",
     "langgraph>=0.1",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
 ]
+
+[project.urls]
+"Homepage" = "https://github.com/FastalGroup/fastal-langgraph-toolkit"
+"Repository" = "https://github.com/FastalGroup/fastal-langgraph-toolkit.git"
+"Issues" = "https://github.com/FastalGroup/fastal-langgraph-toolkit/issues"
 
 [project.optional-dependencies]
 openai = ["langchain-openai>=0.1"]
