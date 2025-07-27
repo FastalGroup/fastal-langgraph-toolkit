@@ -5,6 +5,7 @@
 The **Fastal LangGraph Toolkit** is a production-ready Python package developed by the Fastal Group to provide common utilities and tools for building enterprise-grade LangGraph agents. Originally developed internally for client projects, this toolkit has been open-sourced to support the broader LangGraph community.
 
 **PyPI Package**: `fastal-langgraph-toolkit`  
+**Current Version**: v0.1.1 (Latest with critical bug fixes)  
 **Development**: Uses `uv` (not pip) for dependency management  
 **License**: MIT  
 **Target**: Python 3.10+
@@ -81,7 +82,7 @@ summary_manager = SummaryManager(llm)
 # Install dependencies
 uv sync
 
-# Run tests
+# Run tests (with async support)
 uv run pytest
 
 # Build package
@@ -96,7 +97,15 @@ uv run mypy src/
 # Linting (if configured)
 uv run ruff check src/
 uv run ruff format src/
+
+# Publish to PyPI (automated via GitHub Actions)
+uv run twine upload dist/* --skip-existing
 ```
+
+### Development Dependencies
+- **pytest**: Testing framework
+- **pytest-asyncio**: Async test support
+- **twine**: PyPI publishing
 
 ## Configuration Requirements
 
@@ -190,20 +199,71 @@ bedrock = ["langchain-aws>=0.1", "boto3>=1.26"]
 all = [all providers]
 ```
 
+## Release Management
+
+### Versioning Strategy
+- **v0.1.0**: Initial release (had TYPE_CHECKING import issues)
+- **v0.1.1**: Current stable - Critical bug fixes for import compatibility
+
+### GitHub Actions Workflow
+- **Automated PyPI Publishing**: Triggered on GitHub releases
+- **CI/CD Pipeline**: Syntax checking and testing
+- **Secret Management**: PYPI_API_TOKEN configured for auto-publishing
+
+### Release Process
+1. Update version in `pyproject.toml` and `__init__.py`
+2. Commit changes and create Git tag: `git tag v0.x.x`
+3. Push tag: `git push origin v0.x.x`
+4. Create GitHub release with `gh release create`
+5. GitHub Actions automatically publishes to PyPI
+
+## Critical Bug Fixes (v0.1.1)
+
+### TYPE_CHECKING Import Resolution
+**Problem**: v0.1.0 had import errors when optional dependencies weren't installed
+```python
+# v0.1.0 - PROBLEMATIC
+def _create_model(self) -> OpenAIEmbeddings:  # Evaluated at import!
+
+# v0.1.1 - FIXED
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from langchain_openai import OpenAIEmbeddings
+
+def _create_model(self) -> "OpenAIEmbeddings":  # String annotation
+```
+
+**Solution**: Use TYPE_CHECKING for conditional imports and string type annotations
+
 ## Best Practices for Claude Code
 
 1. **Use uv for all package operations** - This project uses uv, not pip
-2. **Understand the provider system** - Check available providers before use
-3. **Focus on the two main modules** - ModelFactory and SummaryManager
-4. **Test with SimpleNamespace configs** - Required for proper operation
-5. **Consider memory optimization** - The summarization system is the key differentiator
-6. **Follow the existing patterns** - Enterprise-grade, production-ready code style
+2. **Always use latest version** - Install with `pip install fastal-langgraph-toolkit` (gets v0.1.1)
+3. **Understand the provider system** - Check available providers before use
+4. **Focus on the two main modules** - ModelFactory and SummaryManager
+5. **Test with SimpleNamespace configs** - Required for proper operation
+6. **Consider memory optimization** - The summarization system is the key differentiator
+7. **Follow the existing patterns** - Enterprise-grade, production-ready code style
 
 ## Common Issues & Solutions
 
 1. **"SimpleNamespace required" Error**: Use `types.SimpleNamespace` not dict
-2. **Provider not available**: Check optional dependencies are installed
-3. **Summary not created**: Verify conversation pair threshold is reached
-4. **Memory usage**: Adjust `pairs_threshold` and `recent_pairs_to_preserve`
+2. **Import errors without optional deps**: Upgrade to v0.1.1 (has TYPE_CHECKING fixes)
+3. **Provider not available**: Check optional dependencies are installed
+4. **Summary not created**: Verify conversation pair threshold is reached
+5. **Memory usage**: Adjust `pairs_threshold` and `recent_pairs_to_preserve`
+
+## Testing Strategy
+
+### Environment Isolation
+- **Development**: Full environment with all optional dependencies
+- **CI**: Clean environment testing for import compatibility
+- **Production Testing**: Multi-environment validation before release
+
+### Test Coverage
+- Unit tests for core functionality
+- Integration tests for provider compatibility
+- Async test support with pytest-asyncio
+- Import testing without optional dependencies
 
 This toolkit represents battle-tested patterns from real enterprise implementations, extracted into a reusable package for the LangGraph community.
