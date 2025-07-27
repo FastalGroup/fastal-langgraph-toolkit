@@ -1,5 +1,10 @@
 # Fastal LangGraph Toolkit
 
+[![Basic Checks](https://github.com/FastalGroup/fastal-langgraph-toolkit/actions/workflows/test.yml/badge.svg)](https://github.com/FastalGroup/fastal-langgraph-toolkit/actions/workflows/test.yml)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI version](https://badge.fury.io/py/fastal-langgraph-toolkit.svg)](https://badge.fury.io/py/fastal-langgraph-toolkit)
+
 Common utilities and tools for building LangGraph agents.
 
 ## Installation
