@@ -47,15 +47,19 @@ embeddings = ModelFactory.create_embeddings("openai", "text-embedding-3-small", 
 ```
 
 ### 2. Intelligent Conversation Summarization
+- **Ready-to-Use LangGraph Node**: `summary_node()` method provides instant integration
 - **Conversation Pair Counting**: Smart Human+AI message pair detection
 - **ReAct Tool Filtering**: Automatic exclusion of tool calls from summaries
 - **Configurable Thresholds**: Customizable trigger points
 - **Context Preservation**: Keep recent conversations for continuity
 - **Custom Prompts**: Domain-specific summarization templates
 - **State Auto-Injection**: Works with existing states
+- **Built-in Error Handling**: Robust error management with optional logging
 
 ```python
 from fastal.langgraph.toolkit import SummaryManager, SummarizableState
+from langgraph.graph import StateGraph
+import logging
 
 class MyAgentState(SummarizableState):
     messages: Annotated[list, add_messages]
@@ -63,6 +67,15 @@ class MyAgentState(SummarizableState):
     # summary and last_summarized_index automatically provided
 
 summary_manager = SummaryManager(llm)
+
+# Optional: Configure logging for summary operations
+logger = logging.getLogger(__name__)
+summary_manager.set_logger(logger)
+
+# Add ready-to-use summary node to your workflow
+workflow = StateGraph(MyAgentState)
+workflow.add_node("summary_check", summary_manager.summary_node)
+workflow.set_entry_point("summary_check")
 ```
 
 ### 3. Memory Optimization
@@ -136,12 +149,18 @@ Common environment variables:
 
 ### Enterprise Multi-Provider Setup
 ```python
+import logging
+
 class EnterpriseAgent:
     def __init__(self):
         # Primary: OpenAI, Fallback: Anthropic
         self.primary_llm = self._get_openai_llm()
         self.fallback_llm = self._get_anthropic_llm()
         self.summary_manager = SummaryManager(self.get_llm())
+        
+        # Configure logging for summary operations
+        logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.summary_manager.set_logger(logger)
 ```
 
 ### Memory-Optimized Long Conversations
@@ -154,9 +173,9 @@ config = SummaryConfig(
 )
 ```
 
-### Domain-Specific Summarization
+### Domain-Specific Summarization with Ready-to-Use Node
 ```python
-# Customer service example
+# Customer service example with ready-to-use summary node
 config = SummaryConfig(
     pairs_threshold=8,
     new_summary_prompt="""
@@ -167,6 +186,12 @@ config = SummaryConfig(
     - Current Status
     """
 )
+
+summary_manager = SummaryManager(llm, config)
+summary_manager.set_logger(logger)  # Optional logging
+
+# Use in LangGraph workflow
+workflow.add_node("summary_check", summary_manager.summary_node)
 ```
 
 ## Testing and Quality
@@ -243,7 +268,9 @@ def _create_model(self) -> "OpenAIEmbeddings":  # String annotation
 4. **Focus on the two main modules** - ModelFactory and SummaryManager
 5. **Test with SimpleNamespace configs** - Required for proper operation
 6. **Consider memory optimization** - The summarization system is the key differentiator
-7. **Follow the existing patterns** - Enterprise-grade, production-ready code style
+7. **Use ready-to-use summary_node()** - Prefer `summary_manager.summary_node` over custom implementations
+8. **Configure logging** - Use `set_logger()` for automatic summary operation logging
+9. **Follow the existing patterns** - Enterprise-grade, production-ready code style
 
 ## Common Issues & Solutions
 
@@ -252,6 +279,8 @@ def _create_model(self) -> "OpenAIEmbeddings":  # String annotation
 3. **Provider not available**: Check optional dependencies are installed
 4. **Summary not created**: Verify conversation pair threshold is reached
 5. **Memory usage**: Adjust `pairs_threshold` and `recent_pairs_to_preserve`
+6. **Summary node errors**: Use built-in `summary_manager.summary_node` with error handling
+7. **Missing summary logs**: Configure logger with `summary_manager.set_logger(logger)`
 
 ## Testing Strategy
 

@@ -40,6 +40,7 @@ Main fetures:
 The LangChain/LangGraph framework provides good support for managing both short-term and long-term memory in agents through the LangMem module. However, we found that automated summarization based solely on token counting is not a sufficient approach for most real and complex agents. The solution included in this kit offers an alternative and more sophisticated method, based on the structure of the conversation and a focus on the object and content of the discussions.
 
 Features:
+- **Ready-to-Use LangGraph Node**: `summary_node()` method provides instant integration
 - **Conversation Pair Counting**: Smart Human+AI message pair detection
 - **ReAct Tool Filtering**: Automatic exclusion of tool calls from summaries
 - **Configurable Thresholds**: Customizable trigger points for summarization
@@ -47,6 +48,7 @@ Features:
 - **Custom Prompts**: Domain-specific summarization templates
 - **State Auto-Injection**: Seamless integration with existing states
 - **Token Optimization**: Reduce context length for cost efficiency
+- **Built-in Error Handling**: Robust error management with optional logging
 
 ### 💾 Memory Management
 - **`SummarizableState`**: Type-safe base class for summary-enabled states
@@ -133,12 +135,18 @@ class MyAgentState(SummarizableState):
 llm = ModelFactory.create_llm("openai", "gpt-4o", config)
 summary_manager = SummaryManager(llm)
 
-# 3. Use in your LangGraph nodes
-async def my_summary_node(state: MyAgentState) -> dict:
-    """Check if summarization is needed and create summary if so"""
-    if await summary_manager.should_create_summary(state):
-        return await summary_manager.process_summary(state)
-    return {}
+# 3. Use ready-to-use summary node in your LangGraph workflow
+from langgraph.graph import StateGraph
+import logging
+
+# Optional: Configure logging for summary operations
+logger = logging.getLogger(__name__)
+summary_manager.set_logger(logger)
+
+# Add to your workflow
+workflow = StateGraph(MyAgentState)
+workflow.add_node("summary_check", summary_manager.summary_node)  # Ready-to-use!
+workflow.set_entry_point("summary_check")
 ```
 
 #### Advanced Configuration
@@ -178,21 +186,22 @@ summary_manager = SummaryManager(llm, custom_config)
 ```
 
 #### Complete LangGraph Integration Example
+
+**Simple Approach (Recommended):**
 ```python
 from langgraph.graph import StateGraph
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+import logging
+
+logger = logging.getLogger(__name__)
 
 class CustomerSupportAgent:
     def __init__(self):
         self.llm = ModelFactory.create_llm("openai", "gpt-4o", config)
         self.summary_manager = SummaryManager(self.llm, custom_config)
+        # Optional: Configure logging for summary operations
+        self.summary_manager.set_logger(logger)
         self.graph = self._create_graph()
-    
-    async def _summary_node(self, state: MyAgentState) -> dict:
-        """Entry point - handles summarization before processing"""
-        if await self.summary_manager.should_create_summary(state):
-            return await self.summary_manager.process_summary(state)
-        return {}
     
     async def _agent_node(self, state: MyAgentState) -> dict:
         """Main agent logic with optimized context"""
@@ -214,7 +223,9 @@ class CustomerSupportAgent:
     
     def _create_graph(self):
         workflow = StateGraph(MyAgentState)
-        workflow.add_node("summary_check", self._summary_node)
+        
+        # Use ready-to-use summary node from toolkit
+        workflow.add_node("summary_check", self.summary_manager.summary_node)
         workflow.add_node("agent", self._agent_node)
         
         workflow.set_entry_point("summary_check")
@@ -233,6 +244,46 @@ class CustomerSupportAgent:
             
             result = await app.ainvoke(input_state, config=config)
             return result["messages"][-1].content
+```
+
+**Advanced Approach (Custom Implementation):**
+```python
+# If you need custom logic in your summary node
+class AdvancedCustomerSupportAgent:
+    def __init__(self):
+        self.llm = ModelFactory.create_llm("openai", "gpt-4o", config)
+        self.summary_manager = SummaryManager(self.llm, custom_config)
+        self.graph = self._create_graph()
+    
+    async def _custom_summary_node(self, state: MyAgentState) -> dict:
+        """Custom summary node with additional business logic"""
+        thread_id = state.get("thread_id", "")
+        
+        # Custom business logic before summarization
+        if self._should_skip_summary(state):
+            return {}
+        
+        # Use summary manager for the actual summarization
+        if await self.summary_manager.should_create_summary(state):
+            result = await self.summary_manager.process_summary(state)
+            
+            # Custom logging or analytics
+            if result:
+                logger.info(f"Summary created for customer thread {thread_id}")
+                self._track_summary_analytics(state, result)
+            
+            return result
+        
+        return {}
+    
+    def _should_skip_summary(self, state):
+        """Custom business logic to skip summarization"""
+        # Example: Skip for priority customers or short sessions
+        return False
+    
+    def _track_summary_analytics(self, state, result):
+        """Custom analytics tracking"""
+        pass
 ```
 
 ## 📋 API Reference
@@ -317,6 +368,36 @@ Counts Human+AI conversation pairs, excluding tool calls.
 - `start_index`: Starting index for counting (default: 0)
 
 **Returns:** Number of complete conversation pairs
+
+#### `async summary_node(state: dict) -> dict`
+
+**Ready-to-use LangGraph node for conversation summarization.**
+
+This method provides a complete LangGraph node that can be directly added to workflows. It handles the entire summary workflow internally and provides optional logging.
+
+**Parameters:**
+- `state`: LangGraph state (will be auto-injected with summary fields if missing)
+
+**Returns:** Empty dict if no summary needed, or dict with summary fields if created
+
+**Example:**
+```python
+# In your LangGraph workflow
+summary_manager = SummaryManager(llm, config)
+summary_manager.set_logger(logger)  # Optional logging
+
+workflow.add_node("summary_check", summary_manager.summary_node)
+workflow.set_entry_point("summary_check")
+```
+
+#### `set_logger(logger)`
+
+Set logger for summary_node logging (optional).
+
+**Parameters:**
+- `logger`: Logger instance for summary_node operations
+
+**Note:** When a logger is configured, `summary_node()` will automatically log when summaries are created.
 
 ### SummaryConfig
 
@@ -704,10 +785,22 @@ class BadAgentState(TypedDict):
 
 ### 2. Graph Architecture
 ```python
-# ✅ Summary node as entry point
+# ✅ Use ready-to-use summary node (Recommended)
+summary_manager = SummaryManager(llm, config)
+summary_manager.set_logger(logger)  # Optional logging
+
+workflow.add_node("summary_check", summary_manager.summary_node)
 workflow.set_entry_point("summary_check")  # Always check summary first
 workflow.add_edge("summary_check", "agent")  # Then process
 workflow.add_edge("tools", "agent")  # Tools return to agent, not summary
+
+# ✅ Alternative: Custom summary node (if you need custom logic)
+async def custom_summary_node(state):
+    if await summary_manager.should_create_summary(state):
+        return await summary_manager.process_summary(state)
+    return {}
+
+workflow.add_node("summary_check", custom_summary_node)
 
 # ❌ Don't create summaries mid-conversation
 # This would create summaries during tool execution
@@ -737,8 +830,16 @@ bad_config = SimpleNamespace(api_key="sk-hardcoded-key")  # Never do this!
 
 ### 4. Error Handling
 ```python
+# ✅ Use built-in error handling (Recommended)
+# The summary_node() method already includes robust error handling
+summary_manager = SummaryManager(llm, config)
+summary_manager.set_logger(logger)  # Automatic error logging
+
+workflow.add_node("summary_check", summary_manager.summary_node)
+
+# ✅ Custom error handling (if needed)
 async def robust_summary_node(state):
-    """Summary node with proper error handling"""
+    """Custom summary node with additional error handling"""
     try:
         if await summary_manager.should_create_summary(state):
             return await summary_manager.process_summary(state)
@@ -754,6 +855,14 @@ async def robust_summary_node(state):
 import time
 from functools import wraps
 
+# ✅ Built-in monitoring (Recommended)
+# The summary_node() automatically logs performance when logger is configured
+summary_manager = SummaryManager(llm, config)
+summary_manager.set_logger(logger)  # Automatic performance logging
+
+workflow.add_node("summary_check", summary_manager.summary_node)
+
+# ✅ Custom performance monitoring (if needed)
 def monitor_performance(func):
     """Decorator to monitor summary performance"""
     @wraps(func)
@@ -768,7 +877,7 @@ def monitor_performance(func):
         return result
     return wrapper
 
-# Usage
+# Usage with custom node
 @monitor_performance
 async def monitored_summary_node(state):
     return await summary_manager.process_summary(state)

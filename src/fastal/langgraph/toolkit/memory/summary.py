@@ -410,7 +410,7 @@ class SummaryManager:
         state = self.ensure_summary_state(state)
         
         if not await self.should_create_summary(state):
-            return state
+            return {}
         
         messages = state["messages"]
         last_summarized_index = state.get("last_summarized_index", 0)
@@ -426,7 +426,7 @@ class SummaryManager:
         messages_to_summarize = messages[last_summarized_index:context_start_index]
         
         if not messages_to_summarize:
-            return state
+            return {}
         
         # Create new summary
         new_summary = await self.create_summary(messages_to_summarize, current_summary)
@@ -436,3 +436,51 @@ class SummaryManager:
             "summary": new_summary,
             "last_summarized_index": context_start_index
         }
+    
+    async def summary_node(self, state: dict) -> dict:
+        """Ready-to-use LangGraph node for conversation summarization.
+        
+        This is a complete LangGraph node that can be directly added to workflows.
+        It handles the entire summary workflow and provides optional logging.
+        
+        Args:
+            state: LangGraph state (will be auto-injected with summary fields if missing)
+            
+        Returns:
+            Empty dict if no summary needed, or dict with summary fields if created
+            
+        Example:
+            # In your LangGraph workflow
+            workflow.add_node("summary_check", summary_manager.summary_node)
+        """
+        try:
+            result = await self.process_summary(state)
+            
+            # Optional logging if logger provided via set_logger method
+            if result and hasattr(self, '_logger') and self._logger:
+                thread_id = state.get("thread_id", "unknown")
+                messages = state.get("messages", [])
+                last_summarized_index = state.get("last_summarized_index", 0)
+                
+                # Count pairs for logging
+                pairs = self.count_conversation_pairs(messages, last_summarized_index)
+                self._logger.info(
+                    f"🎯 SUMMARY CREATED: Thread {thread_id} - {pairs} conversation pairs "
+                    f"since last summary at index {last_summarized_index}"
+                )
+            
+            return result
+            
+        except Exception as e:
+            # Log error if logger available
+            if hasattr(self, '_logger') and self._logger:
+                self._logger.error(f"Error in summary node: {e}", exc_info=True)
+            return {}
+    
+    def set_logger(self, logger):
+        """Set logger for summary_node logging (optional).
+        
+        Args:
+            logger: Logger instance for summary_node operations
+        """
+        self._logger = logger
