@@ -9,11 +9,11 @@
 
 ## 🏢 About
 
-The Fastal LangGraph Toolkit was originally developed internally by the **Fastal Group** to support enterprise-grade agentic application implementations across multiple client projects. After proving its effectiveness in production environments, we've open-sourced this toolkit to help the broader LangGraph community build robust, scalable agent applications.
+The Fastal LangGraph Toolkit was originally developed internally by the **Fastal Group** to support enterprise-grade agentic application implementations across multiple client projects. After proving its effectiveness in production environments, we've open-sourced this toolkit to contribute to the broader LangGraph community.
 
 ### Why This Toolkit?
 
-Building production LangGraph agents involves solving common challenges:
+Building production LangGraph agents involves solving common challenges in advanced research and development projects:
 - **Multi-provider Management**: Support for multiple LLM/embedding providers with seamless switching
 - **Context Management**: Intelligent conversation summarization for long-running sessions
 - **Memory Optimization**: Token-efficient context handling for cost control
@@ -24,14 +24,22 @@ This toolkit provides battle-tested solutions for these challenges, extracted fr
 
 ## ✨ Features
 
-### 🔄 Multi-Provider Model Factory
+### 🔄 Multi-Provider Model Factory (Chat LLM & Embeddings)
+The current version of the model factory supports the following providers, more providers will be added in future versions.
+
 - **LLM Support**: OpenAI, Anthropic, Ollama, AWS Bedrock
 - **Embeddings Support**: OpenAI, Ollama, AWS Bedrock  
+
+Main fetures:
 - **Configuration Injection**: Clean provider abstraction
 - **Provider Health Checks**: Availability validation
 - **Seamless Switching**: Change providers without code changes
 
 ### 🧠 Intelligent Conversation Summarization
+
+The LangChain/LangGraph framework provides good support for managing both short-term and long-term memory in agents through the LangMem module. However, we found that automated summarization based solely on token counting is not a sufficient approach for most real and complex agents. The solution included in this kit offers an alternative and more sophisticated method, based on the structure of the conversation and a focus on the object and content of the discussions.
+
+Features:
 - **Conversation Pair Counting**: Smart Human+AI message pair detection
 - **ReAct Tool Filtering**: Automatic exclusion of tool calls from summaries
 - **Configurable Thresholds**: Customizable trigger points for summarization

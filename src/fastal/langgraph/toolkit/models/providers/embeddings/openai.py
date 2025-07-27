@@ -4,10 +4,13 @@ This module provides the OpenAI-specific implementation for text embeddings,
 supporting all OpenAI embedding models including text-embedding-ada-002 and newer.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ....exceptions import ConfigurationError
 from ...base import BaseProvider
+
+if TYPE_CHECKING:
+    from langchain_openai import OpenAIEmbeddings
 
 try:
     from langchain_openai import OpenAIEmbeddings
@@ -35,7 +38,7 @@ class OpenAIEmbeddingProvider(BaseProvider):
         self.model_name = model_name
         self.kwargs = kwargs
 
-    def _create_model(self) -> OpenAIEmbeddings:
+    def _create_model(self) -> "OpenAIEmbeddings":
         """Create the OpenAI embeddings instance.
         
         Returns:

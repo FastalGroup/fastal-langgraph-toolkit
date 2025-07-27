@@ -4,10 +4,13 @@ This module provides the OpenAI-specific implementation for language models,
 supporting all OpenAI chat models including GPT-4 and GPT-3.5 variants.
 """
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ....exceptions import ConfigurationError
 from ...base import BaseProvider
+
+if TYPE_CHECKING:
+    from langchain_openai import ChatOpenAI
 
 try:
     from langchain_openai import ChatOpenAI
@@ -35,7 +38,7 @@ class OpenAILLMProvider(BaseProvider):
         self.model_name = model_name
         self.kwargs = kwargs
 
-    def _create_model(self) -> ChatOpenAI:
+    def _create_model(self) -> "ChatOpenAI":
         """Create the OpenAI chat model instance.
         
         Returns:
