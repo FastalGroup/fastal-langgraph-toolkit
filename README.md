@@ -1366,6 +1366,80 @@ import logging
 logging.getLogger("fastal.langgraph.toolkit").setLevel(logging.DEBUG)
 ```
 
+## 🗺️ Roadmap
+
+The Fastal LangGraph Toolkit follows a structured development roadmap with clear versioning and feature additions. Current development status and planned features:
+
+### Current Status (v0.3.0b1)
+- ✅ **Multi-Provider LLM Support**: OpenAI, Anthropic, Ollama, AWS Bedrock
+- ✅ **Multi-Provider Embeddings**: OpenAI, Ollama, AWS Bedrock  
+- ✅ **Intelligent Conversation Summarization**: Production-ready with ready-to-use LangGraph node
+- ✅ **OpenAI Speech-to-Text**: Whisper integration with full async support
+- ✅ **Type Safety**: Full TypedDict integration and TYPE_CHECKING imports
+- ✅ **Enterprise Testing**: Comprehensive test suite with CI/CD
+
+### Planned Features
+
+#### v0.4.0 - Extended STT Providers (Q1 2025)
+- 🚧 **Google Cloud Speech-to-Text**: Full integration with streaming support
+- 🚧 **Azure Cognitive Services STT**: Real-time transcription capabilities
+- 🚧 **Advanced STT Features**: Speaker diarization, custom vocabularies, language detection
+- 🚧 **STT Performance Optimizations**: Batch processing and caching
+
+#### v0.5.0 - Text-to-Speech Support (Q2 2025)
+- 🚧 **OpenAI TTS**: High-quality voice synthesis with multiple voices
+- 🚧 **Google Cloud TTS**: WaveNet and Neural2 voice support
+- 🚧 **ElevenLabs Integration**: Premium voice models and voice cloning
+- 🚧 **Azure TTS**: Neural voices with emotion control
+- 🚧 **TTSFactory**: Unified factory pattern for all TTS providers
+
+#### v0.6.0 - Advanced Features (Q3 2025)
+- 🚧 **Real-Time Streaming**: Live audio processing capabilities
+- 🚧 **Audio Processing Pipeline**: Noise reduction, format conversion
+- 🚧 **Multi-Language Support**: Enhanced language detection and switching
+- 🚧 **Voice Activity Detection**: Smart audio segmentation
+
+#### v1.0.0 - Production Release (Q4 2025)
+- 🚧 **Enterprise Authentication**: OAuth, SAML, and enterprise SSO
+- 🚧 **Advanced Monitoring**: Metrics, tracing, and observability
+- 🚧 **Performance Optimizations**: Caching, connection pooling
+- 🚧 **Documentation**: Complete enterprise deployment guides
+
+### Provider Expansion Plans
+
+**Speech-to-Text Providers (v0.4.0):**
+- Google Cloud Speech-to-Text
+- Azure Cognitive Services Speech
+- AWS Transcribe (planned)
+- AssemblyAI (community request)
+
+**Text-to-Speech Providers (v0.5.0):**
+- OpenAI TTS
+- Google Cloud Text-to-Speech  
+- ElevenLabs
+- Azure Cognitive Services TTS
+- AWS Polly (planned)
+
+### Community Contributions
+
+We welcome community contributions and feedback to help shape the roadmap:
+
+- **Feature Requests**: Create issues for new provider requests or feature suggestions
+- **Provider Implementations**: Community-contributed providers are welcome
+- **Documentation**: Help improve examples and guides
+- **Testing**: Real-world usage feedback from enterprise deployments
+
+**Priority is given to providers with proven enterprise demand and active community support.**
+
+### Version Strategy
+
+- **Major versions** (1.x): Breaking changes, major architectural improvements
+- **Minor versions** (0.x): New features, provider additions
+- **Patch versions** (0.x.y): Bug fixes, security updates
+- **Beta releases** (0.x.0b1): Pre-release testing with new features
+
+**Current stable release**: v0.2.0 (STT functionality in beta)
+
 ## License
 
 MIT License
