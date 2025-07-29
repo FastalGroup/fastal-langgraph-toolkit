@@ -32,8 +32,8 @@ jobs:
     
     - name: Test import safety
       run: |
-        python -c "from fastal.langgraph.toolkit import ModelFactory; print('✅ Core imports working')"
-        python -c "from fastal.langgraph.toolkit import TranscriptionResult; print('✅ STT type imports working')"
+        uv run python -c "from fastal.langgraph.toolkit import ModelFactory; print('✅ Core imports working')"
+        uv run python -c "from fastal.langgraph.toolkit import TranscriptionResult; print('✅ STT type imports working')"
         echo "✅ Import verification passed"
 
   publish:
