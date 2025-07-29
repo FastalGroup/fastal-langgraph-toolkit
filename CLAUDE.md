@@ -5,7 +5,8 @@
 The **Fastal LangGraph Toolkit** is a production-ready Python package developed by the Fastal Group to provide common utilities and tools for building enterprise-grade LangGraph agents with multi-modal capabilities. Originally developed internally for client projects, this toolkit has been open-sourced to support the broader LangGraph community.
 
 **PyPI Package**: `fastal-langgraph-toolkit`  
-**Current Version**: v0.2.0 (Latest with Speech-to-Text support)  
+**Current Stable Version**: v0.2.0 (Latest stable release)  
+**Development Version**: v0.3.0b1 (Beta with STT support)  
 **Development**: Uses `uv` (not pip) for dependency management  
 **License**: MIT  
 **Target**: Python 3.10+
