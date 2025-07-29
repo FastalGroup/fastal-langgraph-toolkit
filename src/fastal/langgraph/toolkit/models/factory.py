@@ -26,6 +26,9 @@ from .providers.llm import (
     OllamaLLMProvider,
     OpenAILLMProvider,
 )
+from .providers.stt import (
+    OpenAISTTProvider,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +183,61 @@ class EmbeddingFactory:
 
 
 
+class STTFactory:
+    """Factory for creating speech-to-text instances.
+    
+    This factory handles the creation of different STT providers based on
+    configuration, abstracting away the specific implementation details.
+    """
+
+    _provider_classes = {
+        "openai": OpenAISTTProvider,
+    }
+
+    @classmethod
+    def create_stt(
+        cls,
+        provider: str,
+        model_name: str | None = None,
+        provider_config: Any | None = None,
+        **kwargs
+    ) -> Any:
+        """Create a speech-to-text instance.
+        
+        Args:
+            provider: The STT provider to use
+            model_name: Name of the model to instantiate (if applicable)
+            provider_config: Provider-specific configuration (uses default if None)
+            **kwargs: Additional arguments to pass to the provider
+        
+        Returns:
+            Configured STT instance ready for use
+            
+        Raises:
+            ConfigurationError: If the provider is unknown or unavailable
+        """
+        if provider not in cls._provider_classes:
+            raise ConfigurationError(f"Unknown STT provider: {provider}")
+
+        # Check if provider module is available
+        if not PROVIDERS_AVAILABLE.get(provider, False):
+            raise ConfigurationError(
+                f"STT provider '{provider}' is not available. "
+                f"Install with: uv add langchain-{provider} or openai"
+            )
+
+        if provider_config is None:
+            raise ConfigurationError(
+                f"Provider configuration is required. "
+                f"Please provide configuration for '{provider}' provider."
+            )
+
+        provider_class = cls._provider_classes[provider]
+        provider_instance = provider_class(provider_config, model_name, **kwargs)
+
+        return provider_instance
+
+
 def get_available_providers() -> dict[str, dict[str, bool]]:
     """Get information about available providers.
     
@@ -199,5 +257,10 @@ def get_available_providers() -> dict[str, dict[str, bool]]:
             provider: PROVIDERS_AVAILABLE.get(provider, False)
             for provider in PROVIDERS_AVAILABLE.keys()
             if provider in ["openai", "ollama", "bedrock"]
+        },
+        'stt_providers': {
+            provider: PROVIDERS_AVAILABLE.get(provider, False)
+            for provider in PROVIDERS_AVAILABLE.keys()
+            if provider in ["openai"]
         }
     }

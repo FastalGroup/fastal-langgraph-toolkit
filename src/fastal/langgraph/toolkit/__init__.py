@@ -4,7 +4,7 @@ This toolkit provides reusable components for building LangGraph agents,
 including model factories, memory management, and common tools.
 """
 
-from .models import ModelFactory
+from .models import ModelFactory, TranscriptionResult, AudioResult, TranscriptionSegment, AudioFormat
 from .memory import SummaryManager, SummaryConfig, SummarizableState
 
 __version__ = "0.2.0"
@@ -16,4 +16,8 @@ __all__ = [
     "SummaryManager", 
     "SummaryConfig",
     "SummarizableState",
+    "TranscriptionResult",
+    "AudioResult",
+    "TranscriptionSegment", 
+    "AudioFormat",
 ]

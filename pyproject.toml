@@ -34,16 +34,20 @@ dependencies = [
 "Issues" = "https://github.com/FastalGroup/fastal-langgraph-toolkit/issues"
 
 [project.optional-dependencies]
-openai = ["langchain-openai>=0.1"]
+openai = ["langchain-openai>=0.1", "openai>=1.0.0"]
 anthropic = ["langchain-anthropic>=0.1"]
 ollama = ["langchain-ollama>=0.1"]
 bedrock = ["langchain-aws>=0.1", "boto3>=1.26"]
+stt = [
+    "openai>=1.0.0",
+]
 all = [
     "langchain-openai>=0.1",
     "langchain-anthropic>=0.1", 
     "langchain-ollama>=0.1",
     "langchain-aws>=0.1",
     "boto3>=1.26",
+    "openai>=1.0.0",
 ]
 
 [build-system]

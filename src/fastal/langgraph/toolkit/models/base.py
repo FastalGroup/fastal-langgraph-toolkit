@@ -134,3 +134,114 @@ class BaseProvider(ABC):
             True if the provider is available and responsive
         """
         return self.is_available()
+
+
+class STTProviderProtocol(Protocol):
+    """Protocol defining the interface for speech-to-text providers.
+    
+    All STT providers must implement these methods to ensure
+    compatibility with the factory system.
+    """
+
+    def transcribe(self, audio_data: bytes, **kwargs) -> Any:
+        """Transcribe audio to text synchronously.
+        
+        Args:
+            audio_data: Audio data in bytes format
+            **kwargs: Additional provider-specific parameters
+            
+        Returns:
+            Transcription result
+        """
+        ...
+
+    async def atranscribe(self, audio_data: bytes, **kwargs) -> Any:
+        """Transcribe audio to text asynchronously.
+        
+        Args:
+            audio_data: Audio data in bytes format
+            **kwargs: Additional provider-specific parameters
+            
+        Returns:
+            Transcription result
+        """
+        ...
+
+
+class TTSProviderProtocol(Protocol):
+    """Protocol defining the interface for text-to-speech providers.
+    
+    All TTS providers must implement these methods to ensure
+    compatibility with the factory system.
+    """
+
+    def synthesize(self, text: str, **kwargs) -> Any:
+        """Synthesize text to audio synchronously.
+        
+        Args:
+            text: Text to synthesize
+            **kwargs: Additional provider-specific parameters
+            
+        Returns:
+            Audio synthesis result
+        """
+        ...
+
+    async def asynthesize(self, text: str, **kwargs) -> Any:
+        """Synthesize text to audio asynchronously.
+        
+        Args:
+            text: Text to synthesize
+            **kwargs: Additional provider-specific parameters
+            
+        Returns:
+            Audio synthesis result
+        """
+        ...
+
+
+class BaseSTTProvider(BaseProvider):
+    """Base class for speech-to-text provider implementations.
+    
+    This class provides common functionality for all STT providers including
+    lazy loading of models and standardized transcription interface.
+    """
+
+    def __init__(self, config: Any, model_name: str | None = None, **kwargs):
+        """Initialize the STT provider.
+        
+        Args:
+            config: Provider-specific configuration object
+            model_name: Optional model name (provider-specific)
+            **kwargs: Additional provider-specific parameters
+        """
+        super().__init__(config)
+        self.model_name = model_name
+        self.kwargs = kwargs
+
+    def transcribe(self, audio_data: bytes, **kwargs) -> Any:
+        """Transcribe audio to text using the provider's model.
+        
+        Args:
+            audio_data: Audio data in bytes format
+            **kwargs: Additional transcription parameters
+            
+        Returns:
+            Provider-specific transcription result
+        """
+        return self.model.transcribe(audio_data, **kwargs)
+
+    async def atranscribe(self, audio_data: bytes, **kwargs) -> Any:
+        """Async transcribe audio to text using the provider's model.
+        
+        Args:
+            audio_data: Audio data in bytes format
+            **kwargs: Additional transcription parameters
+            
+        Returns:
+            Provider-specific transcription result
+        """
+        if hasattr(self.model, 'atranscribe'):
+            return await self.model.atranscribe(audio_data, **kwargs)
+        # Fallback to sync version if async not available
+        return self.transcribe(audio_data, **kwargs)

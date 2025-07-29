@@ -2,10 +2,10 @@
 
 ## Project Overview
 
-The **Fastal LangGraph Toolkit** is a production-ready Python package developed by the Fastal Group to provide common utilities and tools for building enterprise-grade LangGraph agents. Originally developed internally for client projects, this toolkit has been open-sourced to support the broader LangGraph community.
+The **Fastal LangGraph Toolkit** is a production-ready Python package developed by the Fastal Group to provide common utilities and tools for building enterprise-grade LangGraph agents with multi-modal capabilities. Originally developed internally for client projects, this toolkit has been open-sourced to support the broader LangGraph community.
 
 **PyPI Package**: `fastal-langgraph-toolkit`  
-**Current Version**: v0.1.1 (Latest with critical bug fixes)  
+**Current Version**: v0.2.0 (Latest with Speech-to-Text support)  
 **Development**: Uses `uv` (not pip) for dependency management  
 **License**: MIT  
 **Target**: Python 3.10+
@@ -15,8 +15,10 @@ The **Fastal LangGraph Toolkit** is a production-ready Python package developed 
 ### Main Modules
 
 1. **ModelFactory** (`src/fastal/langgraph/toolkit/models/`)
-   - Multi-provider LLM and embedding factory
-   - Supports: OpenAI, Anthropic, Ollama, AWS Bedrock
+   - Multi-provider LLM, embedding and speech factory
+   - LLM Support: OpenAI, Anthropic, Ollama, AWS Bedrock
+   - Embedding Support: OpenAI, Ollama, AWS Bedrock
+   - Speech Support: OpenAI Whisper (expanding to more providers)
    - Provider availability detection
    - Configuration abstraction
 
@@ -25,9 +27,16 @@ The **Fastal LangGraph Toolkit** is a production-ready Python package developed 
    - `SummaryConfig`: Configurable summarization behavior
    - `SummarizableState`: TypedDict base class for summary-enabled states
 
-3. **Providers** (`src/fastal/langgraph/toolkit/models/providers/`)
+3. **Speech Processing** (`src/fastal/langgraph/toolkit/models/`)
+   - `STTFactory`: Speech-to-text factory with provider abstraction
+   - `TranscriptionResult`: Standardized result format across providers
+   - `BaseSTTProvider`: Base class for all STT implementations
+   - Error handling and async support
+
+4. **Providers** (`src/fastal/langgraph/toolkit/models/providers/`)
    - LLM providers: `llm/anthropic.py`, `llm/bedrock.py`, `llm/ollama.py`, `llm/openai.py`
    - Embedding providers: `embeddings/bedrock.py`, `embeddings/ollama.py`, `embeddings/openai.py`
+   - STT providers: `stt/openai.py` (more coming soon)
 
 ## Key Features
 
@@ -44,6 +53,40 @@ from types import SimpleNamespace
 config = SimpleNamespace(api_key="your-key", temperature=0.7)
 llm = ModelFactory.create_llm("openai", "gpt-4o", config)
 embeddings = ModelFactory.create_embeddings("openai", "text-embedding-3-small", config)
+stt = ModelFactory.create_stt("openai", "whisper-1", config)
+```
+
+### 1.1 Enterprise Speech Processing
+- **Multi-Format Support**: MP3, WAV, M4A, and other standard audio formats
+- **Language Detection**: Automatic language identification with manual override support
+- **Async Operations**: Full async/await support for non-blocking processing
+- **Structured Results**: Standardized `TranscriptionResult` format with segments, timing, and metadata
+- **Error Resilience**: Robust error handling with detailed logging and graceful fallbacks
+- **Provider Abstraction**: Unified interface regardless of underlying STT provider
+
+```python
+from fastal.langgraph.toolkit import ModelFactory, TranscriptionResult
+
+# Create STT instance
+stt_config = SimpleNamespace(api_key="your-openai-key")
+stt = ModelFactory.create_stt("openai", "whisper-1", stt_config)
+
+# Transcribe audio with detailed results
+with open("audio.mp3", "rb") as f:
+    result: TranscriptionResult = stt.transcribe(
+        f.read(),
+        language="en",
+        temperature=0.1,  # High accuracy
+        response_format="verbose_json"
+    )
+
+print(f"Text: {result['text']}")
+print(f"Language: {result['language']}")
+print(f"Duration: {result['duration_seconds']}s")
+
+# Process segments for detailed analysis
+for segment in result.get('segments', []):
+    print(f"{segment['start']:.2f}s: {segment['text']}")
 ```
 
 ### 2. Intelligent Conversation Summarization
@@ -97,6 +140,12 @@ uv sync
 
 # Run tests (with async support)
 uv run pytest
+
+# Run tests with coverage
+uv run pytest --cov=src/fastal/langgraph/toolkit
+
+# Run only STT tests
+uv run pytest tests/test_stt.py -v
 
 # Build package
 uv build
@@ -156,11 +205,62 @@ class EnterpriseAgent:
         # Primary: OpenAI, Fallback: Anthropic
         self.primary_llm = self._get_openai_llm()
         self.fallback_llm = self._get_anthropic_llm()
+        self.stt = self._get_openai_stt()  # Speech processing
         self.summary_manager = SummaryManager(self.get_llm())
         
         # Configure logging for summary operations
         logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         self.summary_manager.set_logger(logger)
+    
+    def _get_openai_stt(self):
+        """Configure OpenAI Whisper for enterprise use"""
+        config = SimpleNamespace(
+            api_key=os.getenv("OPENAI_API_KEY"),
+            # Enterprise settings can be added here
+        )
+        return ModelFactory.create_stt("openai", "whisper-1", config)
+```
+
+### Multi-Modal Agent Architecture
+```python
+# Multi-modal agent with speech and text processing
+class MultiModalEnterpriseAgent:
+    def __init__(self):
+        self.llm = ModelFactory.create_llm("openai", "gpt-4o", config)
+        self.stt = ModelFactory.create_stt("openai", "whisper-1", config)
+        self.summary_manager = SummaryManager(self.llm)
+        
+        # Configure logging
+        logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.summary_manager.set_logger(logger)
+    
+    async def process_audio_input(self, audio_data: bytes, thread_id: str):
+        """Process audio input with enterprise-grade error handling"""
+        try:
+            # Transcribe with high accuracy settings
+            transcription = await self.stt.atranscribe(
+                audio_data,
+                temperature=0.0,  # Maximum accuracy for enterprise
+                language="en",    # Can be made configurable
+                response_format="verbose_json"
+            )
+            
+            # Log for compliance/auditing
+            logger.info(f"Audio processed for thread {thread_id}: {len(audio_data)} bytes")
+            
+            return transcription
+            
+        except Exception as e:
+            logger.error(f"Audio processing failed for {thread_id}: {e}")
+            # Return structured error response
+            return {
+                "text": "[Audio processing unavailable]",
+                "error": str(e),
+                "language": None,
+                "duration_seconds": None,
+                "segments": None,
+                "warnings": ["Audio processing failed - please try again"]
+            }
 ```
 
 ### Memory-Optimized Long Conversations
@@ -217,18 +317,20 @@ workflow.add_node("summary_check", summary_manager.summary_node)
 ### Optional Dependencies
 ```toml
 [project.optional-dependencies]
-openai = ["langchain-openai>=0.1"]
+openai = ["langchain-openai>=0.1", "openai>=1.0.0"]
 anthropic = ["langchain-anthropic>=0.1"]
 ollama = ["langchain-ollama>=0.1"]
 bedrock = ["langchain-aws>=0.1", "boto3>=1.26"]
-all = [all providers]
+stt = ["openai>=1.0.0"]  # Speech-to-text support
+all = [all providers including speech]
 ```
 
 ## Release Management
 
 ### Versioning Strategy
 - **v0.1.0**: Initial release (had TYPE_CHECKING import issues)
-- **v0.1.1**: Current stable - Critical bug fixes for import compatibility
+- **v0.1.1**: Bug fixes for import compatibility
+- **v0.2.0**: Current stable - Speech-to-Text support with OpenAI Whisper integration
 
 ### GitHub Actions Workflow
 - **Automated PyPI Publishing**: Triggered on GitHub releases
@@ -242,9 +344,19 @@ all = [all providers]
 4. Create GitHub release with `gh release create`
 5. GitHub Actions automatically publishes to PyPI
 
-## Critical Bug Fixes (v0.1.1)
+## Release History
 
-### TYPE_CHECKING Import Resolution
+### v0.2.0 - Speech-to-Text Integration
+**New Features:**
+- Complete Speech-to-Text support with OpenAI Whisper
+- Multi-modal agent capabilities (text + speech)
+- Async speech processing with `atranscribe()`
+- Standardized `TranscriptionResult` format
+- Enterprise-grade error handling for audio processing
+- Comprehensive test suite with conditional OpenAI dependency
+
+### v0.1.1 - Critical Bug Fixes
+**TYPE_CHECKING Import Resolution**
 **Problem**: v0.1.0 had import errors when optional dependencies weren't installed
 ```python
 # v0.1.0 - PROBLEMATIC
@@ -263,24 +375,79 @@ def _create_model(self) -> "OpenAIEmbeddings":  # String annotation
 ## Best Practices for Claude Code
 
 1. **Use uv for all package operations** - This project uses uv, not pip
-2. **Always use latest version** - Install with `pip install fastal-langgraph-toolkit` (gets v0.1.1)
+2. **Always use latest version** - Install with `pip install fastal-langgraph-toolkit` (gets v0.2.0)
 3. **Understand the provider system** - Check available providers before use
-4. **Focus on the two main modules** - ModelFactory and SummaryManager
-5. **Test with SimpleNamespace configs** - Required for proper operation
+4. **Focus on the three main modules** - ModelFactory, SummaryManager, and Speech Processing
+5. **Test with SimpleNamespace configs** - Required for proper operation across all providers
 6. **Consider memory optimization** - The summarization system is the key differentiator
 7. **Use ready-to-use summary_node()** - Prefer `summary_manager.summary_node` over custom implementations
 8. **Configure logging** - Use `set_logger()` for automatic summary operation logging
-9. **Follow the existing patterns** - Enterprise-grade, production-ready code style
+9. **Handle audio gracefully** - Always implement error handling for STT operations
+10. **Use async for speech** - Prefer `atranscribe()` for non-blocking audio processing
+11. **Follow the existing patterns** - Enterprise-grade, production-ready code style
 
 ## Common Issues & Solutions
 
 1. **"SimpleNamespace required" Error**: Use `types.SimpleNamespace` not dict
-2. **Import errors without optional deps**: Upgrade to v0.1.1 (has TYPE_CHECKING fixes)
+2. **Import errors without optional deps**: Upgrade to v0.2.0 (has TYPE_CHECKING fixes)
 3. **Provider not available**: Check optional dependencies are installed
 4. **Summary not created**: Verify conversation pair threshold is reached
 5. **Memory usage**: Adjust `pairs_threshold` and `recent_pairs_to_preserve`
 6. **Summary node errors**: Use built-in `summary_manager.summary_node` with error handling
 7. **Missing summary logs**: Configure logger with `summary_manager.set_logger(logger)`
+8. **STT transcription fails**: Check audio format (MP3/WAV/M4A), file size limits, and API key
+9. **Audio file too large**: OpenAI Whisper has 25MB limit - consider audio preprocessing
+10. **STT provider not available**: Install with `uv add fastal-langgraph-toolkit[stt]` or `uv add openai`
+11. **Async STT not working**: Ensure using `await stt.atranscribe()` not `stt.transcribe()`
+12. **Empty transcription results**: Check audio quality, volume levels, and language settings
+
+## STT Testing Patterns
+
+### Testing Without OpenAI Installed
+The STT tests are designed to work without OpenAI installed, using conditional imports and skipping:
+
+```python
+# In tests/test_stt.py
+try:
+    from fastal.langgraph.toolkit.models.providers.stt.openai import OpenAISTTProvider
+    OPENAI_STT_AVAILABLE = True
+except ImportError:
+    OPENAI_STT_AVAILABLE = False
+    OpenAISTTProvider = None
+
+@pytest.mark.skipif(not OPENAI_STT_AVAILABLE, reason="OpenAI STT provider not available")
+class TestOpenAISTTProvider:
+    # Tests run only when OpenAI is available
+```
+
+### Mock-Based STT Testing
+```python
+# Test transcription without real API calls
+def test_transcribe_with_mocked_client(self):
+    provider = OpenAISTTProvider(config, "whisper-1")
+    
+    mock_client = Mock()
+    mock_response = Mock()
+    mock_response.text = "Test transcription"
+    mock_response.language = "en"
+    mock_client.audio.transcriptions.create.return_value = mock_response
+    
+    with patch.object(provider, '_create_model', return_value=mock_client):
+        result = provider.transcribe(audio_data)
+        assert result["text"] == "Test transcription"
+```
+
+### Running STT Tests
+```bash
+# All tests (including STT)
+uv run pytest tests/ -v
+
+# STT tests only  
+uv run pytest tests/test_stt.py -v
+
+# STT tests with OpenAI available (if installed)
+uv add openai && uv run pytest tests/test_stt.py -v
+```
 
 ## Testing Strategy
 
@@ -290,9 +457,14 @@ def _create_model(self) -> "OpenAIEmbeddings":  # String annotation
 - **Production Testing**: Multi-environment validation before release
 
 ### Test Coverage
-- Unit tests for core functionality
+- Unit tests for core functionality (LLM, embeddings, STT)
 - Integration tests for provider compatibility
-- Async test support with pytest-asyncio
-- Import testing without optional dependencies
+- Async test support with pytest-asyncio (including STT async operations)
+- Import testing without optional dependencies (TYPE_CHECKING pattern)
+- STT-specific test patterns:
+  - Conditional test skipping when OpenAI not available
+  - Mock-based transcription testing
+  - Audio format and error handling validation
+  - Provider availability and fallback testing
 
 This toolkit represents battle-tested patterns from real enterprise implementations, extracted into a reusable package for the LangGraph community.

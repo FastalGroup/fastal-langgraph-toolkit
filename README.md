@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PyPI version](https://badge.fury.io/py/fastal-langgraph-toolkit.svg)](https://badge.fury.io/py/fastal-langgraph-toolkit)
 
-**Production-ready toolkit for building enterprise LangGraph agents with multi-provider support and intelligent conversation management.**
+**Production-ready toolkit for building enterprise LangGraph agents with multi-provider support, intelligent conversation management, and speech processing capabilities.**
 
 ## 🏢 About
 
@@ -14,9 +14,10 @@ The Fastal LangGraph Toolkit was originally developed internally by the **Fastal
 ### Why This Toolkit?
 
 Building production LangGraph agents involves solving common challenges in advanced research and development projects:
-- **Multi-provider Management**: Support for multiple LLM/embedding providers with seamless switching
+- **Multi-provider Management**: Support for multiple LLM/embedding/speech providers with seamless switching
 - **Context Management**: Intelligent conversation summarization for long-running sessions
 - **Memory Optimization**: Token-efficient context handling for cost control
+- **Speech Processing**: Enterprise-grade speech-to-text transcription capabilities
 - **Type Safety**: Proper state management with TypedDict integration
 - **Configuration Injection**: Clean separation between business logic and framework concerns
 
@@ -24,16 +25,30 @@ This toolkit provides battle-tested solutions for these challenges, extracted fr
 
 ## ✨ Features
 
-### 🔄 Multi-Provider Model Factory (Chat LLM & Embeddings)
+### 🔄 Multi-Provider Model Factory (Chat LLM, Embeddings & Speech)
 The current version of the model factory supports the following providers, more providers will be added in future versions.
 
 - **LLM Support**: OpenAI, Anthropic, Ollama, AWS Bedrock
 - **Embeddings Support**: OpenAI, Ollama, AWS Bedrock  
+- **Speech-to-Text Support**: OpenAI Whisper (more providers coming soon)
 
-Main fetures:
+Main features:
 - **Configuration Injection**: Clean provider abstraction
 - **Provider Health Checks**: Availability validation
 - **Seamless Switching**: Change providers without code changes
+
+### 🎤 Enterprise Speech Processing
+
+Production-ready speech-to-text processing with enterprise-grade reliability and performance.
+
+Features:
+- **Multi-Format Support**: MP3, WAV, M4A, and other common audio formats
+- **Language Detection**: Automatic language identification and custom language hints
+- **Async Processing**: Full async/await support for non-blocking operations  
+- **Segment Information**: Detailed timestamp and confidence data when available
+- **Error Handling**: Robust error management with detailed logging
+- **Type Safety**: Standardized `TranscriptionResult` format across providers
+- **Lazy Loading**: Efficient resource management with provider lazy loading
 
 ### 🧠 Intelligent Conversation Summarization
 
@@ -65,6 +80,15 @@ uv add fastal-langgraph-toolkit
 
 # Using pip
 pip install fastal-langgraph-toolkit
+```
+
+### Optional Dependencies for Speech Processing
+```bash
+# Install with STT support
+uv add "fastal-langgraph-toolkit[stt]"
+
+# Or install manually
+uv add fastal-langgraph-toolkit openai
 ```
 
 ### Development Installation
@@ -111,8 +135,53 @@ embeddings = ModelFactory.create_embeddings("openai", "text-embedding-3-small", 
 
 # Check what's available in your environment
 providers = ModelFactory.get_available_providers()
-print(f"Available LLM providers: {providers['llm']}")
-print(f"Available embedding providers: {providers['embeddings']}")
+print(f"Available LLM providers: {providers['llm_providers']}")
+print(f"Available embedding providers: {providers['embedding_providers']}")
+print(f"Available STT providers: {providers['stt_providers']}")
+```
+
+### Speech-to-Text Processing
+
+```python
+from fastal.langgraph.toolkit import ModelFactory, TranscriptionResult
+import asyncio
+
+# Configure STT provider (OpenAI Whisper)
+stt_config = SimpleNamespace(
+    api_key="your-openai-api-key"
+)
+
+# Create STT instance
+stt = ModelFactory.create_stt("openai", "whisper-1", stt_config)
+
+# Synchronous transcription
+with open("audio.mp3", "rb") as audio_file:
+    audio_data = audio_file.read()
+
+result = stt.transcribe(
+    audio_data,
+    language="en",        # Optional: Language hint
+    temperature=0.2,      # Optional: Lower = more deterministic
+    response_format="verbose_json"  # Get detailed segment information
+)
+
+print(f"Transcribed text: {result['text']}")
+print(f"Detected language: {result['language']}")
+print(f"Duration: {result['duration_seconds']} seconds")
+
+# Process segments if available
+if result.get('segments'):
+    for segment in result['segments']:
+        print(f"{segment['start']:.2f}s - {segment['end']:.2f}s: {segment['text']}")
+
+# Async transcription
+async def async_transcribe():
+    result = await stt.atranscribe(audio_data, language="en")
+    return result['text']
+
+# Run async example
+text = asyncio.run(async_transcribe())
+print(f"Async result: {text}")
 ```
 
 ### Intelligent Conversation Summarization
@@ -323,11 +392,36 @@ Creates an embeddings instance for the specified provider.
 
 **Returns:** LangChain `Embeddings` instance
 
+#### `ModelFactory.create_stt(provider: str, model: str | None, config: SimpleNamespace) -> BaseSTTProvider`
+
+Creates a speech-to-text instance for the specified provider.
+
+**Parameters:**
+- `provider`: Provider name (`"openai"` - more providers coming soon)
+- `model`: Optional model name (defaults to provider's default, e.g., `"whisper-1"`)
+- `config`: Configuration object with provider-specific settings
+
+**Returns:** STT provider instance with transcription capabilities
+
+**Example:**
+```python
+from types import SimpleNamespace
+from fastal.langgraph.toolkit import ModelFactory
+
+config = SimpleNamespace(api_key="sk-...")
+stt = ModelFactory.create_stt("openai", "whisper-1", config)
+
+# Transcribe audio
+with open("audio.mp3", "rb") as f:
+    result = stt.transcribe(f.read(), language="en")
+    print(result['text'])
+```
+
 #### `ModelFactory.get_available_providers() -> dict`
 
 Returns available providers in the current environment.
 
-**Returns:** Dictionary with `"llm"` and `"embeddings"` keys containing available provider lists
+**Returns:** Dictionary with `"llm_providers"`, `"embedding_providers"`, and `"stt_providers"` keys containing available provider lists
 
 ### SummaryManager
 
@@ -459,6 +553,61 @@ class MyAgentState(SummarizableState):
 - `summary: str | None` - Current conversation summary
 - `last_summarized_index: int` - Index of first message NOT in last summary
 
+### Speech-to-Text Providers
+
+Base class and methods for speech-to-text operations across different providers.
+
+#### `BaseSTTProvider.transcribe(audio_data: bytes, **kwargs) -> TranscriptionResult`
+
+Transcribe audio to text synchronously.
+
+**Parameters:**
+- `audio_data`: Audio file data in bytes format
+- `**kwargs`: Provider-specific parameters (language, temperature, etc.)
+
+**Returns:** `TranscriptionResult` dictionary with transcription data
+
+#### `BaseSTTProvider.atranscribe(audio_data: bytes, **kwargs) -> TranscriptionResult`
+
+Transcribe audio to text asynchronously.
+
+**Parameters:**
+- `audio_data`: Audio file data in bytes format  
+- `**kwargs`: Provider-specific parameters (language, temperature, etc.)
+
+**Returns:** `TranscriptionResult` dictionary with transcription data
+
+### TranscriptionResult
+
+Standardized result format for speech-to-text operations.
+
+#### Fields:
+- `text: str` - The transcribed text
+- `language: str | None` - Detected or specified language code
+- `confidence: float | None` - Overall confidence score (if available)
+- `duration_seconds: float | None` - Audio duration in seconds
+- `segments: List[TranscriptionSegment] | None` - Detailed segment information
+- `warnings: List[str] | None` - Any warnings or notes
+
+#### TranscriptionSegment Fields:
+- `text: str` - Segment text
+- `start: float` - Start time in seconds
+- `end: float` - End time in seconds  
+- `confidence: float | None` - Segment confidence score
+
+**Example:**
+```python
+result = stt.transcribe(audio_data, response_format="verbose_json")
+
+print(f"Text: {result['text']}")
+print(f"Language: {result['language']}")
+print(f"Duration: {result['duration_seconds']}s")
+
+# Process segments
+for segment in result.get('segments', []):
+    print(f"{segment['start']:.1f}s: {segment['text']}")
+```
+
 ## ⚙️ Configuration
 
 ### SimpleNamespace Requirement
@@ -484,6 +633,7 @@ config = {"api_key": "sk-...", "temperature": 0.7}
 
 #### OpenAI
 ```python
+# For LLM and Embeddings
 openai_config = SimpleNamespace(
     api_key="sk-...",              # Required (or set OPENAI_API_KEY)
     base_url="https://api.openai.com/v1",  # Optional
@@ -491,6 +641,12 @@ openai_config = SimpleNamespace(
     temperature=0.7,               # Optional
     streaming=True,                # Optional
     max_tokens=1000                # Optional
+)
+
+# For Speech-to-Text (Whisper)
+openai_stt_config = SimpleNamespace(
+    api_key="sk-...",              # Required (or set OPENAI_API_KEY)
+    # Most Whisper parameters are set per-request, not in config
 )
 ```
 
@@ -651,6 +807,273 @@ class CustomerServiceSummaryManager:
     async def process_summary(self, state):
         """Process with customer service specific logic"""
         return await self.summary_manager.process_summary(state)
+```
+
+### Multi-Modal Agent with Speech Processing
+
+```python
+from fastal.langgraph.toolkit import ModelFactory, SummaryManager, SummarizableState
+from typing import Annotated
+from langgraph.graph.message import add_messages
+from langgraph.graph import StateGraph
+import asyncio
+
+class MultiModalAgentState(SummarizableState):
+    """State supporting both text and speech inputs"""
+    messages: Annotated[list, add_messages]
+    thread_id: str
+    audio_transcriptions: list = []
+    processing_metadata: dict = {}
+
+class MultiModalAgent:
+    """Agent that handles both text and speech inputs"""
+    
+    def __init__(self):
+        # Configure providers
+        config = SimpleNamespace(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        self.llm = ModelFactory.create_llm("openai", "gpt-4o", config)
+        self.stt = ModelFactory.create_stt("openai", "whisper-1", config)
+        self.summary_manager = SummaryManager(self.llm)
+        
+        self.graph = self._create_graph()
+    
+    async def _audio_processing_node(self, state: MultiModalAgentState):
+        """Node to process incoming audio files"""
+        messages = state["messages"]
+        latest_message = messages[-1] if messages else None
+        
+        # Check if latest message contains audio data
+        audio_data = getattr(latest_message, 'audio_data', None)
+        if not audio_data:
+            return {}
+        
+        try:
+            # Transcribe audio with enhanced settings
+            transcription = await self.stt.atranscribe(
+                audio_data,
+                language="auto",  # Auto-detect language
+                temperature=0.1,  # High accuracy
+                response_format="verbose_json"  # Get segments
+            )
+            
+            # Store transcription with metadata
+            transcription_record = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "text": transcription["text"],
+                "language": transcription["language"],
+                "duration": transcription["duration_seconds"],
+                "segments": transcription.get("segments", []),
+                "message_id": len(messages) - 1
+            }
+            
+            # Add transcribed text as new message
+            from langchain_core.messages import HumanMessage
+            text_message = HumanMessage(
+                content=f"[Audio transcription]: {transcription['text']}"
+            )
+            
+            return {
+                "messages": [text_message],
+                "audio_transcriptions": state.get("audio_transcriptions", []) + [transcription_record],
+                "processing_metadata": {
+                    **state.get("processing_metadata", {}),
+                    "last_audio_processed": transcription_record["timestamp"]
+                }
+            }
+            
+        except Exception as e:
+            logger.error(f"Audio transcription failed: {e}")
+            # Add error message instead of failing
+            error_message = HumanMessage(content="[Audio processing error - please try again]")
+            return {"messages": [error_message]}
+
+    async def _intelligent_agent_node(self, state: MultiModalAgentState):
+        """Main agent node with audio context awareness"""
+        messages = state["messages"]
+        audio_transcriptions = state.get("audio_transcriptions", [])
+        
+        # Build context with audio awareness
+        context_prefix = ""
+        if audio_transcriptions:
+            recent_audio = audio_transcriptions[-3:]  # Last 3 audio inputs
+            audio_summary = "\n".join([
+                f"- Audio {i+1}: {trans['text'][:100]}..." 
+                for i, trans in enumerate(recent_audio)
+            ])
+            context_prefix = f"Recent audio inputs:\n{audio_summary}\n\n"
+        
+        # Use summarized context if available
+        summary = state.get("summary", "")
+        if summary:
+            context_prefix += f"Conversation summary: {summary}\n\n"
+        
+        # Prepare messages with context
+        if context_prefix:
+            from langchain_core.messages import SystemMessage
+            context_msg = SystemMessage(content=context_prefix + "Continue the conversation:")
+            recent_messages = messages[-5:]  # Only recent messages
+            llm_input = [context_msg] + recent_messages
+        else:
+            llm_input = messages
+        
+        response = await self.llm.ainvoke(llm_input)
+        return {"messages": [response]}
+    
+    def _create_graph(self):
+        """Create the multi-modal processing graph"""
+        workflow = StateGraph(MultiModalAgentState)
+        
+        # Add nodes
+        workflow.add_node("audio_processing", self._audio_processing_node)
+        workflow.add_node("summary_check", self.summary_manager.summary_node)
+        workflow.add_node("agent", self._intelligent_agent_node)
+        
+        # Define flow
+        workflow.set_entry_point("audio_processing")
+        workflow.add_edge("audio_processing", "summary_check")
+        workflow.add_edge("summary_check", "agent")
+        workflow.add_edge("agent", "__end__")
+        
+        return workflow.compile()
+    
+    async def process_audio_message(self, audio_data: bytes, thread_id: str):
+        """Process audio input with full pipeline"""
+        # Create audio message (custom message type)
+        class AudioMessage:
+            def __init__(self, audio_data):
+                self.audio_data = audio_data
+                self.content = "[Audio message]"
+        
+        config = {"configurable": {"thread_id": thread_id}}
+        input_state = {
+            "messages": [AudioMessage(audio_data)],
+            "thread_id": thread_id
+        }
+        
+        result = await self.graph.ainvoke(input_state, config=config)
+        return result
+    
+    async def process_text_message(self, text: str, thread_id: str):
+        """Process text input (standard flow)"""
+        from langchain_core.messages import HumanMessage
+        
+        config = {"configurable": {"thread_id": thread_id}}
+        input_state = {
+            "messages": [HumanMessage(content=text)],
+            "thread_id": thread_id
+        }
+        
+        result = await self.graph.ainvoke(input_state, config=config)
+        return result
+    
+    def get_audio_history(self, thread_id: str, limit: int = 10):
+        """Get audio transcription history for a thread"""
+        # This would typically query your checkpointer
+        # For now, return from current state
+        return {"transcriptions": "Audio history would be retrieved from checkpointer"}
+
+# Usage example
+async def multi_modal_example():
+    agent = MultiModalAgent()
+    
+    # Process audio file
+    with open("user_question.mp3", "rb") as f:
+        audio_data = f.read()
+    
+    result = await agent.process_audio_message(audio_data, "user123")
+    print("Audio processing result:", result["messages"][-1].content)
+    
+    # Follow up with text
+    text_result = await agent.process_text_message(
+        "Can you clarify that last point?", "user123"
+    )
+    print("Text follow-up:", text_result["messages"][-1].content)
+
+# Run the example
+# asyncio.run(multi_modal_example())
+```
+
+### Real-time Audio Processing Pipeline
+
+```python
+import aiofiles
+from pathlib import Path
+
+class RealTimeAudioProcessor:
+    """Process audio files from a directory in real-time"""
+    
+    def __init__(self, watch_directory: str):
+        self.watch_directory = Path(watch_directory)
+        self.stt = ModelFactory.create_stt("openai", config=SimpleNamespace(
+            api_key=os.getenv("OPENAI_API_KEY")
+        ))
+        self.processed_files = set()
+    
+    async def process_audio_file(self, file_path: Path):
+        """Process a single audio file"""
+        async with aiofiles.open(file_path, 'rb') as f:
+            audio_data = await f.read()
+        
+        # Transcribe with optimized settings
+        result = await self.stt.atranscribe(
+            audio_data,
+            language="en",
+            temperature=0.0,  # Maximum accuracy
+            response_format="verbose_json"
+        )
+        
+        # Save results
+        output_file = file_path.with_suffix('.json')
+        output_data = {
+            "source_file": str(file_path),
+            "transcription": result,
+            "processed_at": datetime.utcnow().isoformat()
+        }
+        
+        async with aiofiles.open(output_file, 'w') as f:
+            await f.write(json.dumps(output_data, indent=2))
+        
+        return result
+    
+    async def watch_and_process(self):
+        """Watch directory and process new audio files"""
+        while True:
+            try:
+                # Find new audio files
+                audio_files = list(self.watch_directory.glob("*.mp3")) + \
+                             list(self.watch_directory.glob("*.wav")) + \
+                             list(self.watch_directory.glob("*.m4a"))
+                
+                new_files = [f for f in audio_files if f not in self.processed_files]
+                
+                if new_files:
+                    print(f"Found {len(new_files)} new audio files")
+                    
+                    # Process files concurrently
+                    tasks = [self.process_audio_file(file) for file in new_files]
+                    results = await asyncio.gather(*tasks, return_exceptions=True)
+                    
+                    for file, result in zip(new_files, results):
+                        if isinstance(result, Exception):
+                            print(f"Error processing {file}: {result}")
+                        else:
+                            print(f"✓ Processed {file.name}: {result['text'][:100]}...")
+                            self.processed_files.add(file)
+                
+                # Wait before next check
+                await asyncio.sleep(5)
+                
+            except KeyboardInterrupt:
+                print("Stopping audio processor...")
+                break
+            except Exception as e:
+                print(f"Error in watch loop: {e}")
+                await asyncio.sleep(10)
+
+# Usage
+processor = RealTimeAudioProcessor("./audio_input")
+# asyncio.run(processor.watch_and_process())
 ```
 
 ### Memory-Optimized Long Conversations
