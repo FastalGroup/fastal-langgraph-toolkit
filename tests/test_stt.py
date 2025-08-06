@@ -28,26 +28,30 @@ class TestSTTFactory:
         
         assert "Unknown STT provider" in str(exc_info.value)
 
-    @patch('fastal.langgraph.toolkit.models.factory.PROVIDERS_AVAILABLE', {'openai': True})
     def test_create_stt_without_config(self):
         """Test creating STT without config raises error."""
-        with pytest.raises(Exception) as exc_info:
-            STTFactory.create_stt("openai", "whisper-1", None)
-        
-        assert "configuration is required" in str(exc_info.value)
+        # Mock OpenAI as available to test config validation
+        with patch('fastal.langgraph.toolkit.models.factory.STT_PROVIDERS_AVAILABLE', {'openai': True}):
+            with pytest.raises(Exception) as exc_info:
+                STTFactory.create_stt("openai", "whisper-1", None)
+            
+            assert "configuration is required" in str(exc_info.value)
 
-    @patch('fastal.langgraph.toolkit.models.factory.PROVIDERS_AVAILABLE', {'openai': True})
     def test_create_stt_with_openai(self):
         """Test creating OpenAI STT provider."""
+        if not OPENAI_STT_AVAILABLE:
+            pytest.skip("OpenAI STT provider not available")
+            
         config = SimpleNamespace(api_key="test-key")
         
-        # Mock the OpenAI import
-        with patch.object(OpenAISTTProvider, '_create_model', return_value=Mock()):
-            provider = STTFactory.create_stt("openai", "whisper-1", config)
-            
-            assert isinstance(provider, OpenAISTTProvider)
-            assert provider.model_name == "whisper-1"
-            assert provider.config.api_key == "test-key"
+        # Mock the OpenAI import and provider availability
+        with patch('fastal.langgraph.toolkit.models.factory.STT_PROVIDERS_AVAILABLE', {'openai': True}):
+            with patch.object(OpenAISTTProvider, '_create_model', return_value=Mock()):
+                provider = STTFactory.create_stt("openai", "whisper-1", config)
+                
+                assert isinstance(provider, OpenAISTTProvider)
+                assert provider.model_name == "whisper-1"
+                assert provider.config.api_key == "test-key"
 
 
 @pytest.mark.skipif(not OPENAI_STT_AVAILABLE, reason="OpenAI STT provider not available")
@@ -104,16 +108,16 @@ class TestModelFactorySTT:
     @patch('fastal.langgraph.toolkit.models.factory.PROVIDERS_AVAILABLE', {'openai': True})
     def test_create_stt_via_model_factory(self):
         """Test creating STT via unified ModelFactory."""
+        if not OPENAI_STT_AVAILABLE:
+            pytest.skip("OpenAI STT provider not available")
+            
         config = SimpleNamespace(api_key="test-key")
         
-        if OPENAI_STT_AVAILABLE:
+        # Mock provider availability and OpenAI client
+        with patch('fastal.langgraph.toolkit.models.factory.STT_PROVIDERS_AVAILABLE', {'openai': True}):
             with patch.object(OpenAISTTProvider, '_create_model', return_value=Mock()):
                 provider = ModelFactory.create_stt("openai", "whisper-1", config)
                 assert isinstance(provider, OpenAISTTProvider)
-        else:
-            # Test would fail appropriately without OpenAI
-            provider = ModelFactory.create_stt("openai", "whisper-1", config)
-            # The factory will create the provider, but it will fail when used
 
     def test_get_available_providers_includes_stt(self):
         """Test that available providers includes STT information."""  
@@ -128,8 +132,8 @@ class TestModelFactorySTT:
         """Test STT creation behavior when OpenAI is not installed."""
         config = SimpleNamespace(api_key="test-key")
         
-        # Mock OpenAI as not available
-        with patch('fastal.langgraph.toolkit.models.factory.PROVIDERS_AVAILABLE', {'openai': False}):
+        # Mock OpenAI as not available for STT
+        with patch('fastal.langgraph.toolkit.models.factory.STT_PROVIDERS_AVAILABLE', {'openai': False}):
             with pytest.raises(Exception) as exc_info:
                 ModelFactory.create_stt("openai", "whisper-1", config)
             

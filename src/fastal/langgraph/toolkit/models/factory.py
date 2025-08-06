@@ -280,8 +280,8 @@ def get_available_providers() -> dict[str, dict[str, bool]]:
             if provider in ["openai", "ollama", "bedrock"]
         },
         'stt_providers': {
-            provider: PROVIDERS_AVAILABLE.get(provider, False)
-            for provider in PROVIDERS_AVAILABLE.keys()
+            provider: STT_PROVIDERS_AVAILABLE.get(provider, False)
+            for provider in STT_PROVIDERS_AVAILABLE.keys()
             if provider in ["openai"]
         }
     }
