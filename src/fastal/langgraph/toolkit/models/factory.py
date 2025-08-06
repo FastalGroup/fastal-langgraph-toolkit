@@ -32,7 +32,7 @@ from .providers.stt import (
 
 logger = logging.getLogger(__name__)
 
-# Check provider availability
+# Check provider availability for LLM/Embeddings
 PROVIDERS_AVAILABLE = {
     'openai': False,
     'anthropic': False,
@@ -64,6 +64,21 @@ try:
     PROVIDERS_AVAILABLE['bedrock'] = True
 except ImportError:
     pass
+
+# Check provider availability for STT (different requirements)
+STT_PROVIDERS_AVAILABLE = {
+    'openai': False,
+    'google': False,
+    'azure': False,
+}
+
+try:
+    import openai
+    STT_PROVIDERS_AVAILABLE['openai'] = True
+except ImportError:
+    pass
+
+# Future: add Google and Azure STT checks here
 
 
 class LLMFactory:
@@ -219,11 +234,17 @@ class STTFactory:
         if provider not in cls._provider_classes:
             raise ConfigurationError(f"Unknown STT provider: {provider}")
 
-        # Check if provider module is available
-        if not PROVIDERS_AVAILABLE.get(provider, False):
+        # Check if STT provider module is available (uses different requirements than LLM)
+        if not STT_PROVIDERS_AVAILABLE.get(provider, False):
+            install_msg = {
+                'openai': "uv add openai",
+                'google': "uv add google-cloud-speech",  
+                'azure': "uv add azure-cognitiveservices-speech"
+            }.get(provider, f"uv add {provider}")
+            
             raise ConfigurationError(
                 f"STT provider '{provider}' is not available. "
-                f"Install with: uv add langchain-{provider} or openai"
+                f"Install with: {install_msg}"
             )
 
         if provider_config is None:
