@@ -398,7 +398,7 @@ all = [all providers including speech]
 
 ## Release History
 
-### v0.3.0b3 - GPT-5 Model Support with Enhanced Configuration (Beta)
+### v0.3.0 - GPT-5 Model Support with Enhanced Configuration
 **New Features:**
 - Full support for OpenAI GPT-5 models (gpt-5, gpt-5-mini, gpt-5-nano)
 - Automatic parameter mapping: `max_tokens` → `max_completion_tokens` for GPT-5

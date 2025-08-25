@@ -7,7 +7,7 @@ including model factories, memory management, and common tools.
 from .models import ModelFactory, TranscriptionResult, AudioResult, TranscriptionSegment, AudioFormat
 from .memory import SummaryManager, SummaryConfig, SummarizableState
 
-__version__ = "0.3.0b3"
+__version__ = "0.3.0"
 __author__ = "Stefano Capezzone"
 __organization__ = "Fastal"
 
