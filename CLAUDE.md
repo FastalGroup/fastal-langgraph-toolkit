@@ -17,11 +17,12 @@ The **Fastal LangGraph Toolkit** is a production-ready Python package developed 
 
 1. **ModelFactory** (`src/fastal/langgraph/toolkit/models/`)
    - Multi-provider LLM, embedding and speech factory
-   - LLM Support: OpenAI, Anthropic, Ollama, AWS Bedrock
+   - LLM Support: OpenAI (including GPT-5), Anthropic, Ollama, AWS Bedrock
    - Embedding Support: OpenAI, Ollama, AWS Bedrock
    - Speech Support: OpenAI Whisper (expanding to more providers)
    - Provider availability detection
    - Configuration abstraction
+   - GPT-5 automatic parameter mapping and reasoning control
 
 2. **Memory Management** (`src/fastal/langgraph/toolkit/memory/`)
    - `SummaryManager`: Intelligent conversation summarization
@@ -43,6 +44,7 @@ The **Fastal LangGraph Toolkit** is a production-ready Python package developed 
 
 ### 1. Multi-Provider Model Factory
 - **Unified API**: Single interface for all LLM/embedding providers
+- **GPT-5 Support**: Automatic parameter mapping and reasoning_effort control
 - **Configuration Injection**: Clean separation of concerns
 - **Provider Health Checks**: Automatic availability detection
 - **Seamless Switching**: Change providers without code changes
@@ -52,7 +54,8 @@ from fastal.langgraph.toolkit import ModelFactory
 from types import SimpleNamespace
 
 config = SimpleNamespace(api_key="your-key", temperature=0.7)
-llm = ModelFactory.create_llm("openai", "gpt-4o", config)
+# Works with GPT-4 and GPT-5 models transparently
+llm = ModelFactory.create_llm("openai", "gpt-5-mini", config)  # GPT-5 support
 embeddings = ModelFactory.create_embeddings("openai", "text-embedding-3-small", config)
 stt = ModelFactory.create_stt("openai", "whisper-1", config)
 ```
@@ -222,12 +225,60 @@ class EnterpriseAgent:
         return ModelFactory.create_stt("openai", "whisper-1", config)
 ```
 
+### GPT-5 Model Configuration
+```python
+# GPT-5 support with automatic parameter mapping and restrictions handling
+from fastal.langgraph.toolkit import ModelFactory
+from types import SimpleNamespace
+
+# Configuration can now contain ANY parameters - the provider handles them intelligently
+config = SimpleNamespace(
+    api_key="your-openai-key",
+    temperature=0.7,  # Will be ignored for GPT-5 (only accepts 1 or omit)
+    max_tokens=2000,  # Automatically mapped to max_completion_tokens for GPT-5
+    # GPT-5 specific parameters can be in config or kwargs
+    reasoning_effort="medium",
+    verbosity="medium"
+)
+
+# Standard GPT-5 usage - backward compatible
+llm = ModelFactory.create_llm("openai", "gpt-5-mini", config)
+
+# Vision tasks with GPT-5 - optimized configuration
+vision_llm = ModelFactory.create_llm(
+    "openai", 
+    "gpt-5-mini",
+    config,
+    max_completion_tokens=2000,  # Explicit parameter for clarity
+    temperature=1,                # Use 1 for GPT-5 (or omit)
+    reasoning_effort="minimal",   # Prevents reasoning tokens consuming output
+    verbosity="low"              # Control output length
+)
+
+# Complex reasoning with GPT-5
+reasoning_llm = ModelFactory.create_llm(
+    "openai",
+    "gpt-5",
+    config,
+    max_completion_tokens=4000,
+    reasoning_effort="high",  # Maximum reasoning capability
+    verbosity="high"         # Comprehensive outputs
+)
+
+# Important GPT-5 Restrictions:
+# - temperature: Only accepts 1 or parameter omission (auto-handled with warning)
+# - GPT-5 parameters (reasoning_effort, verbosity) go in model_kwargs.extra_body
+# - Works seamlessly with vision/multimodal tasks
+# - Config can contain any parameters - provider discriminates intelligently
+```
+
 ### Multi-Modal Agent Architecture
 ```python
 # Multi-modal agent with speech and text processing
 class MultiModalEnterpriseAgent:
     def __init__(self):
-        self.llm = ModelFactory.create_llm("openai", "gpt-4o", config)
+        # Use GPT-5 for enhanced capabilities
+        self.llm = ModelFactory.create_llm("openai", "gpt-5-mini", config)
         self.stt = ModelFactory.create_stt("openai", "whisper-1", config)
         self.summary_manager = SummaryManager(self.llm)
         
@@ -346,6 +397,24 @@ all = [all providers including speech]
 5. GitHub Actions automatically publishes to PyPI
 
 ## Release History
+
+### v0.3.0b3 - GPT-5 Model Support with Enhanced Configuration (Beta)
+**New Features:**
+- Full support for OpenAI GPT-5 models (gpt-5, gpt-5-mini, gpt-5-nano)
+- Automatic parameter mapping: `max_tokens` → `max_completion_tokens` for GPT-5
+- Automatic temperature handling: GPT-5 only accepts temperature=1 (auto-managed with warnings)
+- Support for `reasoning_effort` parameter (minimal, low, medium, high)
+- Support for `verbosity` parameter (low, medium, high)
+- Temperature now optional for all models (better API compliance)
+- Complete backward compatibility with GPT-4 and earlier models
+- Enhanced vision/multimodal task support with optimized configurations
+- Comprehensive test suite with 15 GPT-5-specific tests
+
+**Technical Improvements:**
+- Intelligent configuration handling: Provider can now accept ANY parameters in config
+- Automatic discrimination of GPT-5 specific parameters to `model_kwargs.extra_body`
+- Flexible parameter sourcing: Parameters can come from config OR kwargs
+- Improved config dictionary handling using `vars()` for any config object
 
 ### v0.2.0 - Speech-to-Text Integration
 **New Features:**

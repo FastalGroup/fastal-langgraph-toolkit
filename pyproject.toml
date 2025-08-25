@@ -1,6 +1,6 @@
 [project]
 name = "fastal-langgraph-toolkit"
-version = "0.3.0b2"
+version = "0.3.0b3"
 description = "Common utilities and tools for LangGraph agents by Fastal"
 readme = "README.md"
 authors = [
@@ -34,20 +34,20 @@ dependencies = [
 "Issues" = "https://github.com/FastalGroup/fastal-langgraph-toolkit/issues"
 
 [project.optional-dependencies]
-openai = ["langchain-openai>=0.1", "openai>=1.0.0"]
+openai = ["langchain-openai>=0.2", "openai>=1.54.0"]
 anthropic = ["langchain-anthropic>=0.1"]
 ollama = ["langchain-ollama>=0.1"]
 bedrock = ["langchain-aws>=0.1", "boto3>=1.26"]
 stt = [
-    "openai>=1.0.0",
+    "openai>=1.54.0",
 ]
 all = [
-    "langchain-openai>=0.1",
+    "langchain-openai>=0.2",
     "langchain-anthropic>=0.1", 
     "langchain-ollama>=0.1",
     "langchain-aws>=0.1",
     "boto3>=1.26",
-    "openai>=1.0.0",
+    "openai>=1.54.0",
 ]
 
 [build-system]

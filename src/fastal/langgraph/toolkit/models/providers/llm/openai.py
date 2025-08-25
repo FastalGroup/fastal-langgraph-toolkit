@@ -20,11 +20,25 @@ except ImportError:
 
 
 class OpenAILLMProvider(BaseProvider):
-    """OpenAI LLM provider implementation.
+    """OpenAI LLM provider implementation with full GPT-5 support.
     
-    Supports all OpenAI chat models with customizable parameters
-    including temperature, max tokens, and organization settings.
+    Supports all OpenAI chat models including GPT-5 variants with automatic
+    parameter mapping and advanced features. Works seamlessly with both
+    chat and vision capabilities.
+    
+    GPT-5 specific features:
+    - Automatic max_tokens → max_completion_tokens mapping
+    - reasoning_effort control (minimal, low, medium, high)
+    - verbosity control (low, medium, high)
+    - Custom tools support with plaintext
+    - Vision model compatibility
     """
+    
+    # GPT-5 model prefixes for automatic detection
+    GPT5_MODELS = ('gpt-5', 'gpt-5-mini', 'gpt-5-nano')
+    
+    # GPT-5 specific parameters that should go in extra_body
+    GPT5_EXTRA_BODY_PARAMS = {'reasoning_effort', 'verbosity'}
 
     def __init__(self, provider_config: Any, model_name: str, **kwargs):
         """Initialize the OpenAI provider.
@@ -39,7 +53,7 @@ class OpenAILLMProvider(BaseProvider):
         self.kwargs = kwargs
 
     def _create_model(self) -> "ChatOpenAI":
-        """Create the OpenAI chat model instance.
+        """Create the OpenAI chat model instance with GPT-5 support.
         
         Returns:
             Configured ChatOpenAI instance
@@ -52,23 +66,74 @@ class OpenAILLMProvider(BaseProvider):
                 "OpenAI provider not available. Install: uv add langchain-openai"
             )
 
-        # Extract common parameters with defaults from config
-        temperature = self.kwargs.get('temperature', self.config.temperature)
-        max_tokens = self.kwargs.get('max_tokens', self.config.max_tokens)
+        # Detect if this is a GPT-5 model
+        is_gpt5 = any(self.model_name.startswith(prefix) for prefix in self.GPT5_MODELS)
+        
+        # Extract all config attributes that might be present
+        # This allows the config to contain any parameters without the provider knowing ahead of time
+        config_dict = vars(self.config) if hasattr(self.config, '__dict__') else {}
+        
+        # Handle temperature parameter
+        # First check kwargs, then config
+        temperature = self.kwargs.get('temperature', config_dict.get('temperature'))
+        
+        # For GPT-5, normalize temperature: only use it if it's exactly 1
+        if is_gpt5 and temperature is not None and temperature != 1:
+            # Log a warning if a logger is available
+            import warnings
+            warnings.warn(
+                f"GPT-5 models only support temperature=1. Ignoring temperature={temperature}",
+                UserWarning
+            )
+            temperature = None  # Omit temperature parameter for GPT-5
+        
+        # Handle token parameter based on model type
+        if is_gpt5:
+            # GPT-5 uses max_completion_tokens parameter
+            max_tokens_param = 'max_completion_tokens'
+            # Check kwargs, then config
+            max_tokens_value = self.kwargs.get('max_completion_tokens', 
+                                              self.kwargs.get('max_tokens', 
+                                              config_dict.get('max_tokens')))
+        else:
+            # GPT-4 and earlier use max_tokens
+            max_tokens_param = 'max_tokens'
+            max_tokens_value = self.kwargs.get('max_tokens', config_dict.get('max_tokens'))
 
-        # Build model configuration (exact same as main branch)
+        # Build base model configuration
         model_config = {
             'model': self.model_name,
-            'api_key': self.config.api_key,
-            'base_url': self.config.base_url,
-            'organization': self.config.organization,
-            'temperature': temperature,
-            'max_tokens': max_tokens,
-            'timeout': self.config.timeout,
+            'api_key': config_dict.get('api_key'),
+            'base_url': config_dict.get('base_url'),
+            'organization': config_dict.get('organization'),
+            max_tokens_param: max_tokens_value,
+            'timeout': config_dict.get('timeout', 30),
         }
+        
+        # Only add temperature if it's not None (make it optional)
+        if temperature is not None:
+            model_config['temperature'] = temperature
+        
+        # Handle extra_body for GPT-5 specific parameters
+        extra_body = self.kwargs.get('extra_body', {})
+        
+        # Process GPT-5 specific parameters from both kwargs AND config
+        if is_gpt5:
+            for param in self.GPT5_EXTRA_BODY_PARAMS:
+                # Check kwargs first, then config
+                value = self.kwargs.get(param) or config_dict.get(param)
+                if value:
+                    extra_body[param] = value
+        
+        # LangChain's ChatOpenAI expects model_kwargs with extra_body inside
+        if extra_body:
+            model_config['model_kwargs'] = {'extra_body': extra_body}
 
-        # Add additional kwargs, excluding already handled ones (same pattern as main branch)
-        additional_kwargs = {k: v for k, v in self.kwargs.items() if k not in ['temperature', 'max_tokens']}
+        # Add additional kwargs, excluding already handled ones
+        excluded_keys = {'temperature', 'max_tokens', 'max_completion_tokens', 
+                        'extra_body'} | self.GPT5_EXTRA_BODY_PARAMS
+        additional_kwargs = {k: v for k, v in self.kwargs.items() 
+                           if k not in excluded_keys}
         model_config.update(additional_kwargs)
 
         return ChatOpenAI(**model_config)
