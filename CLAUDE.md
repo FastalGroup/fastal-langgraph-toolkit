@@ -5,8 +5,8 @@
 The **Fastal LangGraph Toolkit** is a production-ready Python package developed by the Fastal Group to provide common utilities and tools for building enterprise-grade LangGraph agents with multi-modal capabilities. Originally developed internally for client projects, this toolkit has been open-sourced to support the broader LangGraph community.
 
 **PyPI Package**: `fastal-langgraph-toolkit`  
-**Current Stable Version**: v0.2.0 (Latest stable release)  
-**Development Version**: v0.3.0b1 (Beta with STT support)  
+**Current Version**: v0.4.0 (Deprecation warnings added)  
+**Previous Stable**: v0.3.1 (GPT-5 support, Beta status)  
 **Development**: Uses `uv` (not pip) for dependency management  
 **License**: MIT  
 **Target**: Python 3.10+
@@ -398,6 +398,23 @@ all = [all providers including speech]
 
 ## Release History
 
+### v0.4.0 - Deprecation Warnings for Direct Factory Usage
+**Important Changes:**
+- Added deprecation warnings to `LLMFactory`, `EmbeddingFactory`, and `STTFactory`
+- These classes will be made private in v1.0.0
+- Users should migrate to using `ModelFactory` for all model creation
+- Added TODO.md with v1.0.0 migration plan
+- Full backward compatibility maintained
+
+**Migration Required:**
+```python
+# OLD (deprecated in v0.4.0)
+from fastal.langgraph.toolkit.models import LLMFactory, EmbeddingFactory, STTFactory
+
+# NEW (use this instead)
+from fastal.langgraph.toolkit import ModelFactory
+```
+
 ### v0.3.0 - GPT-5 Model Support with Enhanced Configuration
 **New Features:**
 - Full support for OpenAI GPT-5 models (gpt-5, gpt-5-mini, gpt-5-nano)
@@ -445,16 +462,17 @@ def _create_model(self) -> "OpenAIEmbeddings":  # String annotation
 ## Best Practices for Claude Code
 
 1. **Use uv for all package operations** - This project uses uv, not pip
-2. **Always use latest version** - Install with `pip install fastal-langgraph-toolkit` (gets v0.2.0)
-3. **Understand the provider system** - Check available providers before use
-4. **Focus on the three main modules** - ModelFactory, SummaryManager, and Speech Processing
-5. **Test with SimpleNamespace configs** - Required for proper operation across all providers
-6. **Consider memory optimization** - The summarization system is the key differentiator
-7. **Use ready-to-use summary_node()** - Prefer `summary_manager.summary_node` over custom implementations
-8. **Configure logging** - Use `set_logger()` for automatic summary operation logging
-9. **Handle audio gracefully** - Always implement error handling for STT operations
-10. **Use async for speech** - Prefer `atranscribe()` for non-blocking audio processing
-11. **Follow the existing patterns** - Enterprise-grade, production-ready code style
+2. **Always use latest version** - Install with `pip install fastal-langgraph-toolkit` (gets v0.4.0)
+3. **Use ModelFactory, not individual factories** - Direct use of LLMFactory/EmbeddingFactory/STTFactory is deprecated
+4. **Understand the provider system** - Check available providers before use
+5. **Focus on the three main modules** - ModelFactory, SummaryManager, and Speech Processing
+6. **Test with SimpleNamespace configs** - Required for proper operation across all providers
+7. **Consider memory optimization** - The summarization system is the key differentiator
+8. **Use ready-to-use summary_node()** - Prefer `summary_manager.summary_node` over custom implementations
+9. **Configure logging** - Use `set_logger()` for automatic summary operation logging
+10. **Handle audio gracefully** - Always implement error handling for STT operations
+11. **Use async for speech** - Prefer `atranscribe()` for non-blocking audio processing
+12. **Follow the existing patterns** - Enterprise-grade, production-ready code style
 
 ## Common Issues & Solutions
 

@@ -1,6 +1,6 @@
 [project]
 name = "fastal-langgraph-toolkit"
-version = "0.3.1"
+version = "0.4.0"
 description = "Common utilities and tools for LangGraph agents by Fastal"
 readme = "README.md"
 authors = [

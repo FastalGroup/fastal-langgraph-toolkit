@@ -28,11 +28,12 @@ This toolkit provides battle-tested solutions for these challenges, extracted fr
 ### 🔄 Multi-Provider Model Factory (Chat LLM, Embeddings & Speech)
 The current version of the model factory supports the following providers, more providers will be added in future versions.
 
-- **LLM Support**: OpenAI, Anthropic, Ollama, AWS Bedrock
+- **LLM Support**: OpenAI (including GPT-5 models), Anthropic, Ollama, AWS Bedrock
 - **Embeddings Support**: OpenAI, Ollama, AWS Bedrock  
 - **Speech-to-Text Support**: OpenAI Whisper (more providers coming soon)
 
 Main features:
+- **GPT-5 Support**: Full support for GPT-5, GPT-5-mini, and GPT-5-nano with automatic parameter mapping
 - **Configuration Injection**: Clean provider abstraction
 - **Provider Health Checks**: Availability validation
 - **Seamless Switching**: Change providers without code changes
@@ -113,6 +114,55 @@ pip install -e .
 ## 🚀 Quick Start
 
 ### Multi-Provider Model Factory
+
+#### GPT-5 Support (New in v0.3.0)
+
+The toolkit provides first-class support for OpenAI's GPT-5 models with intelligent parameter handling:
+
+```python
+from fastal.langgraph.toolkit import ModelFactory
+from types import SimpleNamespace
+
+# Configuration works transparently with GPT-5
+config = SimpleNamespace(
+    api_key="your-openai-key",
+    temperature=0.7,  # Will be ignored for GPT-5 (only accepts 1 or omit)
+    max_tokens=2000,  # Automatically mapped to max_completion_tokens for GPT-5
+)
+
+# Standard GPT-5 usage
+llm = ModelFactory.create_llm("openai", "gpt-5-mini", config)
+
+# Vision tasks with GPT-5 - optimized configuration
+vision_llm = ModelFactory.create_llm(
+    "openai", 
+    "gpt-5-mini",
+    config,
+    max_completion_tokens=2000,  # Explicit parameter for clarity
+    temperature=1,                # Use 1 for GPT-5 (or omit)
+    reasoning_effort="minimal",   # Prevents reasoning tokens consuming output
+    verbosity="low"              # Control output length
+)
+
+# Complex reasoning with GPT-5
+reasoning_llm = ModelFactory.create_llm(
+    "openai",
+    "gpt-5",
+    config,
+    max_completion_tokens=4000,
+    reasoning_effort="high",  # Maximum reasoning capability
+    verbosity="high"         # Comprehensive outputs
+)
+
+# Important GPT-5 Notes:
+# - temperature: Only accepts 1 or parameter omission (auto-handled with warning)
+# - max_tokens automatically mapped to max_completion_tokens
+# - reasoning_effort controls thinking process: minimal, low, medium, high
+# - verbosity controls output detail: low, medium, high
+# - Works seamlessly with vision/multimodal tasks
+```
+
+#### Standard Multi-Provider Usage
 
 ```python
 from fastal.langgraph.toolkit import ModelFactory
@@ -1370,13 +1420,15 @@ logging.getLogger("fastal.langgraph.toolkit").setLevel(logging.DEBUG)
 
 The Fastal LangGraph Toolkit follows a structured development roadmap with clear versioning and feature additions. Current development status and planned features:
 
-### Current Status (v0.3.0b1)
-- ✅ **Multi-Provider LLM Support**: OpenAI, Anthropic, Ollama, AWS Bedrock
+### Current Status (v0.3.1)
+- ✅ **GPT-5 Model Support**: Full support for GPT-5, GPT-5-mini, GPT-5-nano with intelligent configuration
+- ✅ **Multi-Provider LLM Support**: OpenAI (including GPT-5), Anthropic, Ollama, AWS Bedrock
 - ✅ **Multi-Provider Embeddings**: OpenAI, Ollama, AWS Bedrock  
 - ✅ **Intelligent Conversation Summarization**: Production-ready with ready-to-use LangGraph node
 - ✅ **OpenAI Speech-to-Text**: Whisper integration with full async support
 - ✅ **Type Safety**: Full TypedDict integration and TYPE_CHECKING imports
 - ✅ **Enterprise Testing**: Comprehensive test suite with CI/CD
+- ✅ **Development Status**: Beta (PyPI classifier updated)
 
 ### Planned Features
 
@@ -1438,7 +1490,7 @@ We welcome community contributions and feedback to help shape the roadmap:
 - **Patch versions** (0.x.y): Bug fixes, security updates
 - **Beta releases** (0.x.0b1): Pre-release testing with new features
 
-**Current stable release**: v0.2.0 (STT functionality in beta)
+**Current stable release**: v0.3.1 (GPT-5 support, Beta status on PyPI)
 
 ## License
 

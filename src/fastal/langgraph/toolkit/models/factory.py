@@ -5,6 +5,7 @@ instances, handling configuration and provider selection logic.
 """
 
 import logging
+import warnings
 from typing import Any
 
 try:
@@ -86,6 +87,10 @@ class LLMFactory:
     
     This factory handles the creation of different LLM providers based on
     configuration, abstracting away the specific implementation details.
+    
+    .. deprecated:: 0.4.0
+        LLMFactory is deprecated and will be made private in v1.0.0.
+        Use :class:`ModelFactory.create_llm` instead.
     """
 
     _provider_classes = {
@@ -105,6 +110,10 @@ class LLMFactory:
     ) -> BaseChatModel:
         """Create an LLM instance.
         
+        .. deprecated:: 0.4.0
+            Use :meth:`ModelFactory.create_llm` instead.
+            Direct usage of LLMFactory will be removed in v1.0.0.
+        
         Args:
             provider: The LLM provider to use
             model_name: Name of the model to instantiate
@@ -117,6 +126,12 @@ class LLMFactory:
         Raises:
             ConfigurationError: If the provider is unknown or unavailable
         """
+        warnings.warn(
+            "LLMFactory is deprecated and will be made private in v1.0.0. "
+            "Use ModelFactory.create_llm() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if provider not in cls._provider_classes:
             raise ConfigurationError(f"Unknown LLM provider: {provider}")
 
@@ -145,6 +160,10 @@ class EmbeddingFactory:
     
     This factory handles the creation of different embedding providers based on
     configuration, abstracting away the specific implementation details.
+    
+    .. deprecated:: 0.4.0
+        EmbeddingFactory is deprecated and will be made private in v1.0.0.
+        Use :class:`ModelFactory.create_embeddings` instead.
     """
 
     _provider_classes = {
@@ -163,6 +182,10 @@ class EmbeddingFactory:
     ) -> Embeddings:
         """Create an embeddings instance.
         
+        .. deprecated:: 0.4.0
+            Use :meth:`ModelFactory.create_embeddings` instead.
+            Direct usage of EmbeddingFactory will be removed in v1.0.0.
+        
         Args:
             provider: The embedding provider to use
             model_name: Name of the model to instantiate
@@ -175,6 +198,12 @@ class EmbeddingFactory:
         Raises:
             ConfigurationError: If the provider is unknown or unavailable
         """
+        warnings.warn(
+            "EmbeddingFactory is deprecated and will be made private in v1.0.0. "
+            "Use ModelFactory.create_embeddings() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if provider not in cls._provider_classes:
             raise ConfigurationError(f"Unknown embedding provider: {provider}")
 
@@ -203,6 +232,10 @@ class STTFactory:
     
     This factory handles the creation of different STT providers based on
     configuration, abstracting away the specific implementation details.
+    
+    .. deprecated:: 0.4.0
+        STTFactory is deprecated and will be made private in v1.0.0.
+        Use :class:`ModelFactory.create_stt` instead.
     """
 
     _provider_classes = {
@@ -219,6 +252,10 @@ class STTFactory:
     ) -> Any:
         """Create a speech-to-text instance.
         
+        .. deprecated:: 0.4.0
+            Use :meth:`ModelFactory.create_stt` instead.
+            Direct usage of STTFactory will be removed in v1.0.0.
+        
         Args:
             provider: The STT provider to use
             model_name: Name of the model to instantiate (if applicable)
@@ -231,6 +268,12 @@ class STTFactory:
         Raises:
             ConfigurationError: If the provider is unknown or unavailable
         """
+        warnings.warn(
+            "STTFactory is deprecated and will be made private in v1.0.0. "
+            "Use ModelFactory.create_stt() instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         if provider not in cls._provider_classes:
             raise ConfigurationError(f"Unknown STT provider: {provider}")
 
