@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Dict
 if TYPE_CHECKING:
     from google.cloud import texttospeech
 
-from ..base import BaseProvider
+from ...base import BaseProvider
 
 # TODO: Implement in v0.5.0
 # - Google Cloud Text-to-Speech integration
